@@ -9,6 +9,7 @@ from game.core.tile import TileType
 class MapLoader:
     CHARACTER_TILE_TYPE_MAP: ClassVar[dict[str, TileType]] = {
         "o": TileType.NORMAL,
+        ".": TileType.NORMAL,
         "S": TileType.START,
         "T": TileType.GOAL,
         "f": TileType.FRAGILE,
