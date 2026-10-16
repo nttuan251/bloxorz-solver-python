@@ -1,0 +1,9 @@
+--------------
+-Sooooo---oo-
+-oooooo---oo-
+-opooooo--AB-
+-oooooo---oo-
+-oooooo--ooT-
+--------------
+[SWITCHES]
+split (3,2) -> A B

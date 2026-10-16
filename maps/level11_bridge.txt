@@ -1,0 +1,11 @@
+---------
+-Sooo----
+-osoo----
+---bb----
+---ooo---
+---oTo---
+---------
+[BRIDGES]
+b0: (3,3) (3,4) init=closed
+[SWITCHES]
+soft (2,2) -> b0 toggle
