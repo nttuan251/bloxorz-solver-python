@@ -14,3 +14,7 @@ ENV/
 *.csv
 *.png
 .pytest_cache/
+
+# project descriptor
+AI - Project 1.pdf
+*.pdf
