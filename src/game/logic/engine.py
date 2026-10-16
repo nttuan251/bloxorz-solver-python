@@ -95,5 +95,8 @@ class BloxorzGame:
     def is_valid_state(self, state: State) -> bool:
         is_valid_coords1 = self.level.is_valid_tile(state.get_first_coords())
         is_valid_coords2 = self.level.is_valid_tile(state.get_second_coords())
+        is_standing_on_fragile = state.is_standing() and self.level.is_fragile_tile(
+            state.get_first_coords()
+        )
 
-        return is_valid_coords1 and is_valid_coords2
+        return is_valid_coords1 and is_valid_coords2 and not is_standing_on_fragile

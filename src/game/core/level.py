@@ -22,3 +22,6 @@ class Level:
 
     def is_valid_tile(self, coords: Coordinate) -> bool:
         return self.map.get(coords) is not None
+
+    def is_fragile_tile(self, coords: Coordinate) -> bool:
+        return self.map.get(coords) == TileType.FRAGILE

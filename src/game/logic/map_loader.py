@@ -11,6 +11,7 @@ class MapLoader:
         "o": TileType.NORMAL,
         "S": TileType.START,
         "T": TileType.GOAL,
+        "f": TileType.FRAGILE,
     }
 
     @classmethod

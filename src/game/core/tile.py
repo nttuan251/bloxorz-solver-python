@@ -5,3 +5,4 @@ class TileType(Enum, str):
     NORMAL = "NORMAL"
     START = "START"
     GOAL = "GOAL"
+    FRAGILE = "FRAGILE"
