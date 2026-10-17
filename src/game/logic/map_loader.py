@@ -1,8 +1,10 @@
+import json
 from pathlib import Path
 from typing import ClassVar
 
 from game.core.coordinate import Coordinate
 from game.core.level import Level
+from game.core.switch import SwitchActionType
 from game.core.tile import TileType
 
 
@@ -13,31 +15,73 @@ class MapLoader:
         "S": TileType.START,
         "T": TileType.GOAL,
         "f": TileType.FRAGILE,
+        "b": TileType.BRIDGE,
+        "s": TileType.SOFT_SWITCH,
+        "h": TileType.HEAVY_SWITCH,
     }
 
     @classmethod
     def parse_level_from_file(cls, file_location: str) -> Level:
-        map_data = cls.read_data_from_file(file_location)
-        return cls.build_level_from_raw_string(map_data)
+        level_data = cls.read_data_from_file(file_location)
+        return cls.build_level_from_data(level_data)
 
     @classmethod
-    def read_data_from_file(cls, file_location: str) -> str:
-        return Path(file_location).read_text(encoding="utf-8")
+    def read_data_from_file(cls, file_location: str) -> dict:
+        data = json.loads(Path(file_location).read_text(encoding="utf-8"))
+
+        # Loose check, specific types in the list are not validated
+        assert isinstance(data, dict)
+        assert isinstance(data.get("map"), list)
+        assert isinstance(data.get("bridges"), list)
+        assert isinstance(data.get("switches"), list)
+
+        return data
 
     @classmethod
-    def build_level_from_raw_string(cls, map_data: str) -> Level:
-        tiles_map: dict[Coordinate, TileType] = {}
-        grid_lines = map_data.splitlines()
+    def build_level_from_data(cls, level_data: dict) -> Level:
+        map = cls.build_map_from_data(level_data["map"])
+        bridges = cls.build_bridges_from_data(level_data["bridges"])
+        switches = cls.build_switches_from_data(level_data["switches"])
 
-        for row_index, line in enumerate(grid_lines):
-            for col_index, character in enumerate(line):
-                current_coords = (row_index, col_index)
+        return Level(map, bridges, switches)
 
-                current_tile_type = cls.CHARACTER_TILE_TYPE_MAP.get(character)
+    @classmethod
+    def build_map_from_data(cls, map_data: list[str]) -> dict[Coordinate, TileType]:
+        level_map = {}
+        for row_index, row in enumerate(map_data):
+            for col_index, character in enumerate(row):
+                if character in cls.CHARACTER_TILE_TYPE_MAP:
+                    level_map[(row_index, col_index)] = cls.CHARACTER_TILE_TYPE_MAP[
+                        character
+                    ]
+        return level_map
 
-                if current_tile_type is None:
-                    raise ValueError("Invalid character encountered.")
+    @classmethod
+    def build_bridges_from_data(
+        cls, bridges_data: list[dict]
+    ) -> dict[Coordinate, bool]:
+        bridges: dict[Coordinate, bool] = {}
 
-                tiles_map[current_coords] = current_tile_type
+        for bridge in bridges_data:
+            coords = tuple(bridge["position"])
+            initial_state = bridge["initial_state"]
+            bridges[coords] = initial_state
 
-        return Level(tiles_map)
+        return bridges
+
+    @classmethod
+    def build_switches_from_data(
+        cls, switches_data: list[dict]
+    ) -> dict[Coordinate, tuple[list[Coordinate], SwitchActionType]]:
+        switches: dict[Coordinate, tuple[list[Coordinate], SwitchActionType]] = {}
+
+        for switch in switches_data:
+            coords: Coordinate = tuple(switch["position"])
+            associated_bridges: list[Coordinate] = [
+                tuple(bridge_coords) for bridge_coords in switch["associated_bridges"]
+            ]
+            switch_action = SwitchActionType(switch["action"])
+
+            switches[coords] = (associated_bridges, switch_action)
+
+        return switches

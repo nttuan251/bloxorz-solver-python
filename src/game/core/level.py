@@ -1,9 +1,15 @@
 from game.core.coordinate import Coordinate
+from game.core.switch import SwitchActionType
 from game.core.tile import TileType
 
 
 class Level:
-    def __init__(self, map: dict[Coordinate, TileType]) -> None:
+    def __init__(
+        self,
+        map: dict[Coordinate, TileType],
+        bridges_open_default_states: dict[Coordinate, bool],
+        switches: dict[Coordinate, tuple[list[Coordinate], SwitchActionType]],
+    ) -> None:
         starts = [coords for coords, tile in map.items() if tile == TileType.START]
         goals = [coords for coords, tile in map.items() if tile == TileType.GOAL]
 
@@ -13,6 +19,8 @@ class Level:
         self.map = map
         self.start = starts[0]
         self.goal = goals[0]
+        self.bridges_open_default_states = bridges_open_default_states
+        self.switches = switches
 
     def get_start(self) -> Coordinate:
         return self.start
@@ -20,8 +28,33 @@ class Level:
     def get_goal(self) -> Coordinate:
         return self.goal
 
-    def is_valid_tile(self, coords: Coordinate) -> bool:
-        return self.map.get(coords) is not None
+    def get_bridges_open_default_states(self) -> dict[Coordinate, bool]:
+        return self.bridges_open_default_states
+
+    def is_valid_tile(
+        self, coords: Coordinate, bridges_open_states: dict[Coordinate, bool]
+    ) -> bool:
+        is_void = self.map.get(coords) is None
+        is_closed_bridge = bridges_open_states.get(coords) is False
+
+        return not is_void and not is_closed_bridge
+
+    def is_switch(self, coords: Coordinate) -> bool:
+        return self.is_soft_switch(coords) or self.is_heavy_switch(coords)
+
+    def is_soft_switch(self, coords: Coordinate) -> bool:
+        return self.map.get(coords) == TileType.SOFT_SWITCH
+
+    def is_heavy_switch(self, coords: Coordinate) -> bool:
+        return self.map.get(coords) == TileType.HEAVY_SWITCH
+
+    def get_bridges_and_action_type_from_switch(
+        self, coords: Coordinate
+    ) -> tuple[list[Coordinate], SwitchActionType]:
+        if not self.is_switch(coords):
+            raise ValueError("Provided coordinates do not correspond to a switch.")
+
+        return self.switches[coords]
 
     def is_fragile_tile(self, coords: Coordinate) -> bool:
         return self.map.get(coords) == TileType.FRAGILE

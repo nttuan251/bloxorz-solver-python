@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Action(Enum, str):
+class Action(str, Enum):
     UP = "UP"
     DOWN = "DOWN"
     LEFT = "LEFT"
