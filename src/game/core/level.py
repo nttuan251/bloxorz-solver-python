@@ -8,7 +8,7 @@ class Level:
         self,
         map: dict[Coordinate, TileType],
         bridges_open_default_states: dict[Coordinate, bool],
-        switches: dict[Coordinate, tuple[list[Coordinate], SwitchActionType]],
+        switches: dict[Coordinate, list[tuple[Coordinate, SwitchActionType]]],
     ) -> None:
         starts = [coords for coords, tile in map.items() if tile == TileType.START]
         goals = [coords for coords, tile in map.items() if tile == TileType.GOAL]
@@ -55,9 +55,9 @@ class Level:
     def is_split_switch(self, coords: Coordinate) -> bool:
         return self.map.get(coords) == TileType.SPLIT_SWITCH
 
-    def get_associated_coords_and_action_type_from_switch(
+    def get_associated_coords_and_actions_from_switch(
         self, coords: Coordinate
-    ) -> tuple[list[Coordinate], SwitchActionType]:
+    ) -> list[tuple[Coordinate, SwitchActionType]]:
         if not self.is_switch(coords):
             raise ValueError("Provided coordinates do not correspond to a switch.")
 

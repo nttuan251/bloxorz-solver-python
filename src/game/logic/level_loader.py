@@ -8,7 +8,7 @@ from game.core.switch import SwitchActionType
 from game.core.tile import TileType
 
 
-class MapLoader:
+class LevelLoader:
     CHARACTER_TILE_TYPE_MAP: ClassVar[dict[str, TileType]] = {
         "o": TileType.NORMAL,
         ".": TileType.NORMAL,
@@ -18,8 +18,6 @@ class MapLoader:
         "b": TileType.BRIDGE,
         "s": TileType.SOFT_SWITCH,
         "h": TileType.HEAVY_SWITCH,
-        "A": TileType.SPLIT_DESTINATION,
-        "B": TileType.SPLIT_DESTINATION,
         "p": TileType.SPLIT_SWITCH,
     }
 
@@ -75,16 +73,16 @@ class MapLoader:
     @classmethod
     def _build_switches_from_data(
         cls, switches_data: list[dict]
-    ) -> dict[Coordinate, tuple[list[Coordinate], SwitchActionType]]:
-        switches: dict[Coordinate, tuple[list[Coordinate], SwitchActionType]] = {}
+    ) -> dict[Coordinate, list[tuple[Coordinate, SwitchActionType]]]:
+        switches: dict[Coordinate, list[tuple[Coordinate, SwitchActionType]]] = {}
 
         for switch in switches_data:
             coords: Coordinate = tuple(switch["position"])
-            associated_coords: list[Coordinate] = [
-                tuple(bridge_coords) for bridge_coords in switch["associated_coords"]
+            associated_coords_and_actions: list[tuple[Coordinate, SwitchActionType]] = [
+                (tuple(bridge_coords), SwitchActionType(switch_action))
+                for bridge_coords, switch_action in switch["coords_and_actions"]
             ]
-            switch_action = SwitchActionType(switch["action"])
 
-            switches[coords] = (associated_coords, switch_action)
+            switches[coords] = associated_coords_and_actions
 
         return switches
