@@ -1,0 +1,15 @@
+{
+	"map": [
+		"-----------------",
+		"-oooo---o---oooo-",
+		"-oSoo---o---oopo-",
+		"-ooooooooooooooo-",
+		"-------oTo-------",
+		"-------ooo-------",
+		"-----------------"
+	],
+	"bridges": [],
+	"switches": [
+		{"position": [2, 14], "coords_and_actions": [[[2, 13], "SPLIT"], [[2, 3], "SPLIT"]]}
+	]
+}

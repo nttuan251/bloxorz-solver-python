@@ -1,0 +1,17 @@
+{
+	"map": [
+		"----------------",
+		"----fffffff-----",
+		"----fffffff-----",
+		"-oooo-----ooo---",
+		"-ooo-------oo---",
+		"-ooo-------oo---",
+		"-oSo--oooofffff-",
+		"-ooo--oooofffff-",
+		"------oTo--ffof-",
+		"------ooo--ffff-",
+		"----------------"
+	],
+	"bridges": [],
+	"switches": []
+}
