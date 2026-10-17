@@ -25,11 +25,11 @@ class MapLoader:
 
     @classmethod
     def parse_level_from_file(cls, file_location: str) -> Level:
-        level_data = cls.read_data_from_file(file_location)
-        return cls.build_level_from_data(level_data)
+        level_data = cls._read_data_from_file(file_location)
+        return cls._build_level_from_data(level_data)
 
     @classmethod
-    def read_data_from_file(cls, file_location: str) -> dict:
+    def _read_data_from_file(cls, file_location: str) -> dict:
         data = json.loads(Path(file_location).read_text(encoding="utf-8"))
 
         # Loose check, specific types in the list are not validated
@@ -41,15 +41,15 @@ class MapLoader:
         return data
 
     @classmethod
-    def build_level_from_data(cls, level_data: dict) -> Level:
-        map = cls.build_map_from_data(level_data["map"])
-        bridges = cls.build_bridges_from_data(level_data["bridges"])
-        switches = cls.build_switches_from_data(level_data["switches"])
+    def _build_level_from_data(cls, level_data: dict) -> Level:
+        map = cls._build_map_from_data(level_data["map"])
+        bridges = cls._build_bridges_from_data(level_data["bridges"])
+        switches = cls._build_switches_from_data(level_data["switches"])
 
         return Level(map, bridges, switches)
 
     @classmethod
-    def build_map_from_data(cls, map_data: list[str]) -> dict[Coordinate, TileType]:
+    def _build_map_from_data(cls, map_data: list[str]) -> dict[Coordinate, TileType]:
         level_map = {}
         for row_index, row in enumerate(map_data):
             for col_index, character in enumerate(row):
@@ -60,7 +60,7 @@ class MapLoader:
         return level_map
 
     @classmethod
-    def build_bridges_from_data(
+    def _build_bridges_from_data(
         cls, bridges_data: list[dict]
     ) -> dict[Coordinate, bool]:
         bridges: dict[Coordinate, bool] = {}
@@ -73,7 +73,7 @@ class MapLoader:
         return bridges
 
     @classmethod
-    def build_switches_from_data(
+    def _build_switches_from_data(
         cls, switches_data: list[dict]
     ) -> dict[Coordinate, tuple[list[Coordinate], SwitchActionType]]:
         switches: dict[Coordinate, tuple[list[Coordinate], SwitchActionType]] = {}
