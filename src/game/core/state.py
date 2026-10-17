@@ -4,30 +4,47 @@ from game.core.coordinate import Coordinate
 class State:
     def __init__(
         self,
-        coord1: Coordinate,
-        coord2: Coordinate,
+        coords1: Coordinate,
+        coords2: Coordinate,
         bridges_open_states: dict[Coordinate, bool],
+        is_split_status: bool,
+        controlled_cube_coords: Coordinate | None,
     ) -> None:
-        coord1, coord2 = sorted([coord1, coord2])
+        assert (is_split_status and controlled_cube_coords is not None) or (
+            not is_split_status and controlled_cube_coords is None
+        )
 
-        self.coord1 = coord1
-        self.coord2 = coord2
-        self.bridges_open_states = bridges_open_states
+        if controlled_cube_coords is not None:
+            assert controlled_cube_coords in (coords1, coords2)
+
+        coords1, coords2 = sorted([coords1, coords2])
+
+        self.coords1 = coords1
+        self.coords2 = coords2
+        self.bridges_open_states = bridges_open_states.copy()
+        self.is_split_status = is_split_status
+        self.controlled_cube_coords = controlled_cube_coords
 
     def get_first_coords(self) -> Coordinate:
-        return self.coord1
+        return self.coords1
 
     def get_second_coords(self) -> Coordinate:
-        return self.coord2
+        return self.coords2
 
     def get_bridges_open_states(self) -> dict[Coordinate, bool]:
         return self.bridges_open_states.copy()
 
+    def get_controlled_cube_coords(self) -> Coordinate | None:
+        return self.controlled_cube_coords
+
     def is_standing(self) -> bool:
-        return self.coord1 == self.coord2
+        return self.coords1 == self.coords2
 
     def is_lying_horizontally(self) -> bool:
-        return self.coord1[0] == self.coord2[0]
+        return not self.is_split_status and self.coords1[0] == self.coords2[0]
 
     def is_lying_vertically(self) -> bool:
-        return self.coord1[1] == self.coord2[1]
+        return not self.is_split_status and self.coords1[1] == self.coords2[1]
+
+    def is_split(self) -> bool:
+        return self.is_split_status

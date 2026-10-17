@@ -6,3 +6,4 @@ class Action(str, Enum):
     DOWN = "DOWN"
     LEFT = "LEFT"
     RIGHT = "RIGHT"
+    SWITCH_CONTROL = "SWITCH_CONTROL"

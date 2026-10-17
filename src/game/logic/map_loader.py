@@ -18,6 +18,9 @@ class MapLoader:
         "b": TileType.BRIDGE,
         "s": TileType.SOFT_SWITCH,
         "h": TileType.HEAVY_SWITCH,
+        "A": TileType.SPLIT_DESTINATION,
+        "B": TileType.SPLIT_DESTINATION,
+        "p": TileType.SPLIT_SWITCH,
     }
 
     @classmethod
@@ -77,11 +80,11 @@ class MapLoader:
 
         for switch in switches_data:
             coords: Coordinate = tuple(switch["position"])
-            associated_bridges: list[Coordinate] = [
-                tuple(bridge_coords) for bridge_coords in switch["associated_bridges"]
+            associated_coords: list[Coordinate] = [
+                tuple(bridge_coords) for bridge_coords in switch["associated_coords"]
             ]
             switch_action = SwitchActionType(switch["action"])
 
-            switches[coords] = (associated_bridges, switch_action)
+            switches[coords] = (associated_coords, switch_action)
 
         return switches

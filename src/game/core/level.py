@@ -16,11 +16,11 @@ class Level:
         if len(starts) != 1 or len(goals) != 1:
             raise ValueError("Each map needs exactly one start and one goal.")
 
-        self.map = map
+        self.map = map.copy()
         self.start = starts[0]
         self.goal = goals[0]
-        self.bridges_open_default_states = bridges_open_default_states
-        self.switches = switches
+        self.bridges_open_default_states = bridges_open_default_states.copy()
+        self.switches = switches.copy()
 
     def get_start(self) -> Coordinate:
         return self.start
@@ -40,7 +40,11 @@ class Level:
         return not is_void and not is_closed_bridge
 
     def is_switch(self, coords: Coordinate) -> bool:
-        return self.is_soft_switch(coords) or self.is_heavy_switch(coords)
+        return (
+            self.is_soft_switch(coords)
+            or self.is_heavy_switch(coords)
+            or self.is_split_switch(coords)
+        )
 
     def is_soft_switch(self, coords: Coordinate) -> bool:
         return self.map.get(coords) == TileType.SOFT_SWITCH
@@ -48,7 +52,10 @@ class Level:
     def is_heavy_switch(self, coords: Coordinate) -> bool:
         return self.map.get(coords) == TileType.HEAVY_SWITCH
 
-    def get_bridges_and_action_type_from_switch(
+    def is_split_switch(self, coords: Coordinate) -> bool:
+        return self.map.get(coords) == TileType.SPLIT_SWITCH
+
+    def get_associated_coords_and_action_type_from_switch(
         self, coords: Coordinate
     ) -> tuple[list[Coordinate], SwitchActionType]:
         if not self.is_switch(coords):
