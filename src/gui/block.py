@@ -1,301 +1,382 @@
-"""3D block renderer driven by core State (single block or 2 split cubes)."""
-
-from __future__ import annotations
-
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
+# src/gui/block.py
 from ursina import Entity, Vec3, color, curve, destroy, invoke, scene
-
-import config as config
-from core.state import State
-from core.tile import Action
-
-
-def _pivot_for(r: int, c: int, ori: str, action: Action):
-    """Pivot position + rotation axis reused from the classic roll table."""
-    if ori == 'STANDING':
-        mapping = {
-            'RIGHT': ((c + 0.5, 0, -r), (0, 0, 90)),
-            'LEFT': ((c - 0.5, 0, -r), (0, 0, -90)),
-            'UP': ((c, 0, -r + 0.5), (90, 0, 0)),
-            'DOWN': ((c, 0, -r - 0.5), (-90, 0, 0)),
-        }
-    elif ori == 'LYING_H':
-        mapping = {
-            'RIGHT': ((c + 1.5, 0, -r), (0, 0, 90)),
-            'LEFT': ((c - 0.5, 0, -r), (0, 0, -90)),
-            'UP': ((c + 0.5, 0, -r + 0.5), (90, 0, 0)),
-            'DOWN': ((c + 0.5, 0, -r - 0.5), (-90, 0, 0)),
-        }
-    else:  # LYING_V
-        mapping = {
-            'RIGHT': ((c + 0.5, 0, -(r + 0.5)), (0, 0, 90)),
-            'LEFT': ((c - 0.5, 0, -(r + 0.5)), (0, 0, -90)),
-            'UP': ((c, 0, -r + 0.5), (90, 0, 0)),
-            'DOWN': ((c, 0, -(r + 1.5)), (-90, 0, 0)),
-        }
-    # LYING_V DOWN entry above is ((pivot),(axis)); fix tuple shape.
-    val = mapping[action.value]
-    if len(val) == 2 and isinstance(val[0], tuple):
-        return val
-    return val[0], val[1]
-
+from src.gui import config
 
 class Block:
-    def __init__(self):
-        self.main = Entity(model='cube', color=config.BLOCK_COLOR)
-        self.cube_a = Entity(model='cube', color=config.CUBE_ACTIVE,
-                             scale=(0.9, 0.9, 0.9))
-        self.cube_b = Entity(model='cube', color=config.CUBE_IDLE,
-                             scale=(0.9, 0.9, 0.9))
+    """Quản lý hiển thị và chuyển động hoạt ảnh của khối gạch (nguyên thể và khi tách đôi)."""
+
+    def __init__(self, start_r, start_c):
+        self.entity = Entity(model='cube', color=color.orange, texture='white_cube')
         self.is_animating = False
-        self._split = False
+        
+        self.is_split = False
+        self.cube1 = None
+        self.cube2 = None
+        self.cube1_pos = [0, 0]
+        self.cube2_pos = [0, 0]
+        self.active_cube_index = 1
+        
+        self.set_transform(start_r, start_c, 'STANDING')
 
-    # ---------- immediate sync (no animation) ----------
-    @staticmethod
-    def _stand_pos(r, c):
-        return Vec3(c, 1.0, -r), Vec3(0.9, 2.0, 0.9)
+    def get_transform(self, r, c, ori):
+        """Tính toán vị trí (position) và tỷ lệ (scale) 3D dựa trên tọa độ hàng, cột và hướng đặt của khối gạch."""
+        if ori == 'STANDING':
+            return Vec3(c, 1.0, -r), Vec3(0.9, 2.0, 0.9)
+        elif ori == 'LYING_H':
+            return Vec3(c + 0.5, 0.45, -r), Vec3(1.9, 0.9, 0.9)
+        elif ori == 'LYING_V':
+            return Vec3(c, 0.45, -(r + 0.5)), Vec3(0.9, 0.9, 1.9)
 
-    @staticmethod
-    def _lying_h_pos(r, c):
-        return Vec3(c + 0.5, 0.5, -r), Vec3(1.9, 0.9, 0.9)
+    def set_transform(self, r, c, ori):
+        """Cập nhật vị trí, kích thước và góc xoay của khối gạch nguyên thể."""
+        if not self.entity:
+            return
+        pos, scale = self.get_transform(r, c, ori)
+        self.entity.position = pos
+        self.entity.scale = scale
+        self.entity.rotation = Vec3(0, 0, 0)
+        self.entity.color = color.orange
 
-    @staticmethod
-    def _lying_v_pos(r, c):
-        return Vec3(c, 0.5, -(r + 0.5)), Vec3(0.9, 0.9, 1.9)
+    def split_into_cubes(self, pos1, pos2):
+        """Tách khối gạch lớn thành hai khối lập phương nhỏ độc lập tại hai vị trí chỉ định."""
+        self.cleanup_split()
+        self.is_split = True
+        if self.entity:
+            self.entity.enabled = False
 
-    @staticmethod
-    def _cube_pos(r, c):
-        return Vec3(c, 0.55, -r)
+        r1, c1 = pos1
+        r2, c2 = pos2
+        self.cube1_pos = [r1, c1]
+        self.cube2_pos = [r2, c2]
 
-    def sync(self, state: State):
-        """Snap visuals to `state` instantly."""
-        self._split = state.split
-        self.main.enabled = not state.split
-        self.cube_a.enabled = state.split
-        self.cube_b.enabled = state.split
-        if not state.split:
-            if state.is_standing():
-                pos, scl = self._stand_pos(*state.a)
-            elif state.a[0] == state.b[0]:
-                pos, scl = self._lying_h_pos(*state.a)
-            else:
-                pos, scl = self._lying_v_pos(*state.a)
-            self.main.position = pos
-            self.main.scale = scl
-            self.main.rotation = Vec3(0, 0, 0)
+        self.cube1 = Entity(
+            model='cube', texture='white_cube',
+            position=Vec3(c1, 0.45, -r1), scale=Vec3(0.9, 0.9, 0.9)
+        )
+        self.cube2 = Entity(
+            model='cube', texture='white_cube',
+            position=Vec3(c2, 0.45, -r2), scale=Vec3(0.9, 0.9, 0.9)
+        )
+
+        self.active_cube_index = 1
+        self.update_active_cube_style()
+
+    def get_active_cube(self):
+        """Trả về entity 3D của khối gạch đang được kích hoạt điều khiển."""
+        if not self.is_split:
+            return self.entity
+        return self.cube1 if self.active_cube_index == 1 else self.cube2
+
+    def update_active_cube_style(self):
+        """Cập nhật màu sắc để phân biệt giữa khối lập phương đang chọn và khối đang chờ khi bị tách."""
+        if not self.is_split or not self.cube1 or not self.cube2:
+            return
+        
+        active_color = color.rgb(29/255, 209/255, 161/255)
+        inactive_color = color.dark_gray
+
+        if self.active_cube_index == 1:
+            self.cube1.color = active_color
+            self.cube2.color = inactive_color
         else:
-            self.cube_a.position = self._cube_pos(*state.a)
-            self.cube_b.position = self._cube_pos(*state.b)
-            self.cube_a.color = (config.CUBE_ACTIVE if state.active == 0
-                                 else config.CUBE_IDLE)
-            self.cube_b.color = (config.CUBE_ACTIVE if state.active == 1
-                                 else config.CUBE_IDLE)
+            self.cube1.color = inactive_color
+            self.cube2.color = active_color
 
-    # ---------- animated transition ----------
-    def animate_to(self, old: State, action: Action, new: State, done=None):
-        """Animate old -action-> new, then sync + call done()."""
-        def _finish():
-            self.sync(new)
-            self.is_animating = False
-            if done:
-                done()
-
-        if action == Action.SWITCH:
-            self.is_animating = True
-            self.sync(new)
-            self.is_animating = False
-            if done:
-                invoke(done, delay=0.05)
+    def switch_active_cube(self):
+        """Chuyển đổi lượt điều khiển giữa hai khối lập phương nhỏ khi ở trạng thái tách."""
+        if not self.is_split or self.is_animating:
             return
+        self.active_cube_index = 2 if self.active_cube_index == 1 else 1
+        self.update_active_cube_style()
 
-        # Teleport cases (split / merge): instant snap with a tiny pop.
-        if old.split != new.split or (old.split and new.split and
-                                      self._teleported(old, new)):
-            self.is_animating = True
-            invoke(_finish, delay=0.08)
-            return
-
-        if not old.split and not new.split:
-            self._animate_roll(old, action, new, _finish)
-            return
-
-        # Cube slide (one cube moves one cell).
-        if old.split and new.split:
-            self._animate_cube_slide(old, new, _finish)
-            return
-
+    def animate_cube_roll(self, cube_index, action, next_r, next_c, on_complete=None):
+        """Thực hiện hoạt ảnh lăn quanh mép cho một khối lập phương nhỏ đơn lẻ."""
         self.is_animating = True
-        invoke(_finish, delay=0.08)
+        cube = self.cube1 if cube_index == 1 else self.cube2
+        
+        if hasattr(cube, 'animations'):
+            cube.animations.clear()
 
-    @staticmethod
-    def _teleported(old: State, new: State) -> bool:
-        moved_a = abs(old.a[0] - new.a[0]) + abs(old.a[1] - new.a[1])
-        moved_b = abs(old.b[0] - new.b[0]) + abs(old.b[1] - new.b[1])
-        return moved_a + moved_b > 2
+        c = int(round(cube.x))
+        r = int(round(-cube.z))
 
-    def _animate_roll(self, old: State, action: Action, new: State, _finish):
-        self.is_animating = True
-        r, c = old.a
-        ori = old.orientation()
-        try:
-            pivot_pos, rot_axis = _pivot_for(r, c, ori, action)
-        except KeyError:
-            self.sync(new)
-            self.is_animating = False
-            _finish()
-            return
-        pivot = Entity(position=Vec3(*pivot_pos))
-        self.main.world_parent = pivot
-        try:
-            pivot.animate_rotation(Vec3(*rot_axis),
-                                   duration=config.ROLL_DURATION,
-                                   curve=curve.linear)
-        except Exception:
-            pass
+        pivot_map = {
+            'RIGHT': (Vec3(c + 0.5, 0, -r), Vec3(0, 0, 90)),
+            'LEFT':  (Vec3(c - 0.5, 0, -r), Vec3(0, 0, -90)),
+            'UP':    (Vec3(c, 0, -r + 0.5), Vec3(90, 0, 0)),
+            'DOWN':  (Vec3(c, 0, -r - 0.5), Vec3(-90, 0, 0)),
+        }
+        pivot_pos, rot_axis = pivot_map[action]
+
+        pivot = Entity(position=pivot_pos)
+        cube.world_parent = pivot
+
+        duration = config.ROLL_DURATION
+        pivot.animate_rotation(rot_axis, duration=duration, curve=curve.in_out_quad)
 
         def finish():
-            try:
-                self.main.world_parent = scene
-            except Exception:
-                pass
+            cube.world_parent = scene
             destroy(pivot)
-            _finish()
+            cube.position = Vec3(next_c, 0.45, -next_r)
+            cube.rotation = Vec3(0, 0, 0)
+            
+            if cube_index == 1:
+                self.cube1_pos = [next_r, next_c]
+            else:
+                self.cube2_pos = [next_r, next_c]
 
-        invoke(finish, delay=config.ROLL_DURATION + 0.02)
-
-    def _animate_cube_slide(self, old: State, new: State, _finish):
-        self.is_animating = True
-        mover = self.cube_a if old.active == 0 else self.cube_b
-        target = (new.a if old.active == 0 else new.b)
-        try:
-            mover.animate_position(self._cube_pos(*target),
-                                   duration=config.CUBE_DURATION,
-                                   curve=curve.linear)
-        except Exception:
-            pass
-        invoke(_finish, delay=config.CUBE_DURATION + 0.02)
-
-    # ---------- fall ----------
-    def animate_fall(self, done=None):
-        """Legacy in-place drop (fallback). Prefer animate_roll_then_fall."""
-        self.is_animating = True
-
-        def _end():
             self.is_animating = False
-            if done:
-                done()
+            if on_complete:
+                on_complete()
 
-        try:
-            # Drop whichever is visible: drop all for simplicity.
-            for e in (self.main, self.cube_a, self.cube_b):
-                if e.enabled:
-                    e.animate_position(e.position + Vec3(0, -4, 0),
-                                       duration=0.5, curve=curve.linear)
-        except Exception:
-            pass
-        invoke(_end, delay=0.55)
+        invoke(finish, delay=duration)
 
-    def animate_roll_then_fall(self, old: State, action: Action,
-                               preview: tuple | None, done=None):
-        """Roll out to `preview` cells (may be off-board) then drop down."""
+    def animate_cube_fall(self, cube_index, on_finish=None):
+        """Thực hiện hoạt ảnh rơi xuống vực cho một khối lập phương nhỏ đơn lẻ."""
         self.is_animating = True
+        cube = self.cube1 if cube_index == 1 else self.cube2
+        cube.animate_position(cube.position + Vec3(0, -10, 0), duration=0.6, curve=curve.in_quad)
 
-        def _drop(entity, delay_after=0.0):
-            try:
-                entity.animate_position(entity.position + Vec3(0, -4, 0),
-                                        duration=config.FALL_DURATION,
-                                        curve=curve.linear)
-            except Exception:
-                pass
-            invoke(_end, delay=config.FALL_DURATION + 0.05 + delay_after)
-
-        def _end():
+        def finish():
             self.is_animating = False
-            if done:
-                done()
+            if on_finish:
+                on_finish()
 
-        if preview is None:
-            self.animate_fall(done=done)
-            self.is_animating = True  # animate_fall resets itself; keep flag
-            return
+        invoke(finish, delay=0.65)
 
-        # --- split cube falls: slide the active cube out, then drop it ---
-        if old.split:
-            mover = self.cube_a if old.active == 0 else self.cube_b
-            try:
-                mover.animate_position(self._cube_pos(*preview[0]),
-                                       duration=config.CUBE_DURATION,
-                                       curve=curve.linear)
-            except Exception:
-                pass
+    def merge_cubes(self, target_r, target_c, target_ori, on_complete=None):
+        """Thực hiện hoạt ảnh hợp nhất hai khối lập phương nhỏ thành khối gạch lớn ban đầu."""
+        self.is_animating = True
+        target_pos, target_scale = self.get_transform(target_r, target_c, target_ori)
 
-            def _drop_mover():
-                _drop(mover)
+        if self.cube1:
+            self.cube1.animate_position(target_pos, duration=0.25, curve=curve.in_out_quad)
+        if self.cube2:
+            self.cube2.animate_position(target_pos, duration=0.25, curve=curve.in_out_quad)
 
-            invoke(_drop_mover, delay=config.CUBE_DURATION + 0.02)
-            return
+        def finish_merge():
+            self.cleanup_split()
+            self.set_transform(target_r, target_c, target_ori)
+            self.is_animating = False
+            if on_complete:
+                on_complete()
 
-        # --- block rolls out, then the whole block drops ---
-        try:
-            preview_pos, preview_scl = self._transform_for_cells(preview)
-        except Exception:
-            self.animate_fall(done=done)
-            return
-        r, c = old.a
-        try:
-            pivot_pos, rot_axis = _pivot_for(r, c, old.orientation(), action)
-        except KeyError:
-            # Unknown geometry: snap out then drop.
-            self.main.position, self.main.scale = preview_pos, preview_scl
-            _drop(self.main)
-            return
+        invoke(finish_merge, delay=0.28)
+
+    def cleanup_split(self):
+        """Hủy hai khối lập phương nhỏ và khôi phục hiển thị cho khối gạch nguyên thể."""
+        if self.cube1:
+            destroy(self.cube1)
+            self.cube1 = None
+        if self.cube2:
+            destroy(self.cube2)
+            self.cube2 = None
+        self.is_split = False
+        if hasattr(self, 'entity') and self.entity:
+            self.entity.enabled = True
+            self.entity.color = color.orange
+
+    def animate_roll(self, pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=None):
+        """Thực hiện hoạt ảnh lăn khối gạch nguyên thể quanh điểm xoay (pivot)."""
+        self.is_animating = True
+        
+        if hasattr(self.entity, 'animations'):
+            self.entity.animations.clear()
+
         pivot = Entity(position=Vec3(*pivot_pos))
-        self.main.world_parent = pivot
-        try:
-            pivot.animate_rotation(Vec3(*rot_axis),
-                                   duration=config.ROLL_DURATION,
-                                   curve=curve.linear)
-        except Exception:
-            pass
+        self.entity.world_parent = pivot
 
-        def _after_roll():
-            try:
-                self.main.world_parent = scene
-            except Exception:
-                pass
-            self.main.position, self.main.scale = preview_pos, preview_scl
-            try:
-                self.main.rotation = Vec3(0, 0, 0)
-            except Exception:
-                pass
-            _drop(self.main)
-            try:
-                destroy(pivot)
-            except Exception:
-                pass
+        pivot.animate_rotation(Vec3(*rot_axis), duration=config.ROLL_DURATION, curve=curve.in_out_quad)
 
-        invoke(_after_roll, delay=config.ROLL_DURATION + 0.02)
+        def finish():
+            self.entity.world_parent = scene
+            destroy(pivot)
+            self.set_transform(next_r, next_c, next_ori)
+            self.is_animating = False
+            if on_complete:
+                on_complete()
 
-    @staticmethod
-    def _transform_for_cells(cells: tuple):
-        uniq = tuple(sorted(set(cells)))
-        if len(uniq) == 1:
-            return Block._stand_pos(*uniq[0])
-        (r1, c1), (r2, c2) = uniq[0], uniq[1]
-        if r1 == r2:
-            return Block._lying_h_pos(min(r1, r2), min(c1, c2))
-        if c1 == c2:
-            return Block._lying_v_pos(min(r1, r2), min(c1, c2))
-        # Non-adjacent (should not happen for falls): stand on first cell.
-        return Block._stand_pos(*uniq[0])
+        invoke(finish, delay=config.ROLL_DURATION)
 
-    def destroy(self):
-        for e in (self.main, self.cube_a, self.cube_b):
-            try:
-                destroy(e)
-            except Exception:
-                pass
+    def animate_fall(self, level=None, r=0, c=0, ori='STANDING', bridges_mask=None, matrix=None, bridges_state=None, on_finish=None):
+        """Thực hiện hoạt ảnh lật mép sàn và rơi xuống vực cho khối gạch khi di chuyển ra ngoài phạm vi hợp lệ."""
+        self.is_animating = True
+
+        def is_solid(tr, tc):
+            if level is not None:
+                if tr < 0 or tr >= level.rows or tc < 0 or tc >= level.cols:
+                    return False
+                ch = level.grid[tr][tc]
+                if ch in ('-', ' '):
+                    return False
+                bid = level.bridge_at.get((tr, tc))
+                if bid is not None and bridges_mask is not None:
+                    idx = level.bridge_order.index(bid) if bid in level.bridge_order else -1
+                    if idx != -1 and not bridges_mask[idx]:
+                        return False
+                return True
+            elif matrix is not None:
+                if tr < 0 or tr >= len(matrix) or tc < 0 or tc >= len(matrix[0]):
+                    return False
+                val = matrix[tr][tc]
+                if val in ('-', ' '):
+                    return False
+                if val.upper() == 'B' and bridges_state and not bridges_state.get((tr, tc), False):
+                    return False
+                return True
+            return False
+
+        pivot_pos = None
+        rot_offset = Vec3(0, 0, 0)
+
+        if ori == 'LYING_H':
+            left_solid = is_solid(r, c)
+            right_solid = is_solid(r, c + 1)
+
+            if left_solid and not right_solid:
+                pivot_pos = Vec3(c + 0.5, 0, -r)
+                rot_offset = Vec3(0, 0, 90)
+            elif not left_solid and right_solid:
+                pivot_pos = Vec3(c + 0.5, 0, -r)
+                rot_offset = Vec3(0, 0, -90)
+
+        elif ori == 'LYING_V':
+            top_solid = is_solid(r, c)
+            bottom_solid = is_solid(r + 1, c)
+
+            if top_solid and not bottom_solid:
+                pivot_pos = Vec3(c, 0, -(r + 0.5))
+                rot_offset = Vec3(-90, 0, 0)
+            elif not top_solid and bottom_solid:
+                pivot_pos = Vec3(c, 0, -(r + 0.5))
+                rot_offset = Vec3(90, 0, 0)
+
+        if pivot_pos is not None:
+            pivot = Entity(position=pivot_pos)
+            self.entity.world_parent = pivot
+
+            pivot.animate_rotation(rot_offset, duration=0.2, curve=curve.in_quad)
+
+            def drop_down():
+                pivot.animate_position(pivot.position + Vec3(0, -10, 0), duration=0.5, curve=curve.in_quad)
+
+                def finish():
+                    self.entity.world_parent = scene
+                    destroy(pivot)
+                    self.is_animating = False
+                    if on_finish:
+                        on_finish()
+
+                invoke(finish, delay=0.55)
+
+            invoke(drop_down, delay=0.2)
+
+        else:
+            self.entity.animate_position(
+                self.entity.position + Vec3(0, -10, 0),
+                duration=0.6,
+                curve=curve.in_quad
+            )
+
+            def finish_free_fall():
+                self.is_animating = False
+                if on_finish:
+                    on_finish()
+
+            invoke(finish_free_fall, delay=0.65)
+
+    def animate_win(self, on_finish=None):
+        """Thực hiện hoạt ảnh thu nhỏ và lọt hố khi khối gạch hoàn thành level."""
+        self.is_animating = True
+        duration = 0.45
+
+        self.entity.animate_position(
+            Vec3(self.entity.x, -0.2, self.entity.z),
+            duration=duration,
+            curve=curve.in_quad
+        )
+        self.entity.animate_scale(
+            Vec3(0.85, 0.0, 0.85),
+            duration=duration,
+            curve=curve.in_quad
+        )
+
+        def hide_block():
+            self.entity.enabled = False
+            self.is_animating = False
+            if on_finish:
+                on_finish()
+
+        invoke(hide_block, delay=duration + 0.02)
+
+    def animate_exit_fly_up(self, duration=0.35, on_complete=None):
+        """Thực hiện hoạt ảnh khối gạch bay vút lên trên khi chọn lại hoặc chuyển màn chơi."""
+        self.is_animating = True
+        
+        if self.is_split:
+            if self.cube1:
+                self.cube1.animate_position(self.cube1.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+            if self.cube2:
+                self.cube2.animate_position(self.cube2.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+        else:
+            if hasattr(self, 'entity') and self.entity:
+                self.entity.animate_position(self.entity.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+
+        def finish():
+            self.is_animating = False
+            if on_complete:
+                on_complete()
+
+        invoke(finish, delay=duration)
+
+    def animate_drop_in(self, target_r, target_c, delay=0.0, on_complete=None):
+        """Thực hiện hoạt ảnh khối gạch thả rơi từ trên cao xuống sàn khi bắt đầu chơi."""
+        self.is_animating = True
+        target_pos, target_scale = self.get_transform(target_r, target_c, 'STANDING')
+        
+        self.entity.position = Vec3(target_pos.x, 12.0, target_pos.z)
+        self.entity.scale = target_scale
+        self.entity.rotation = Vec3(0, 0, 0)
+        self.entity.color = color.orange
+
+        drop_duration = 0.55
+
+        def start_drop():
+            self.entity.enabled = True
+            self.entity.animate_position(
+                target_pos,
+                duration=drop_duration,
+                curve=curve.out_bounce
+            )
+            def finish():
+                if hasattr(self.entity, 'animations'):
+                    self.entity.animations.clear()
+
+                self.entity.position = target_pos
+                self.entity.rotation = Vec3(0, 0, 0)
+                self.is_animating = False
+                
+                if on_complete:
+                    invoke(on_complete, delay=0.08)
+
+            invoke(finish, delay=drop_duration)
+
+        if delay > 0:
+            self.entity.enabled = False
+            invoke(start_drop, delay=delay)
+        else:
+            start_drop()
+
+    def destroy_block(self):
+        """Hủy tất cả các entity 3D thuộc về khối gạch để giải phóng tài nguyên."""
+        if self.cube1:
+            destroy(self.cube1)
+            self.cube1 = None
+        if self.cube2:
+            destroy(self.cube2)
+            self.cube2 = None
+        self.is_split = False
+
+        if hasattr(self, 'entity') and self.entity:
+            destroy(self.entity)
+            self.entity = None
