@@ -21,13 +21,14 @@ Hai bản xử lý một số tình huống khác nhau, nên bảng "Chưa chố
 | D4 | Có **tối thiểu 10 màn chơi**, dùng chung cho mọi solver. | Thầy, câu 2, 9 | 2026-10-17 |
 | D5 | Bấm Solve thì GUI **replay** lời giải, khối tự lăn tới đích. | Thầy, câu 4 | 2026-10-17 |
 | D6 | Chỉ khối 1×1×2 **đứng** trên goal mới thắng; khối nằm hoặc khối nhỏ trên goal không thắng. | PDF trang 3 | 2026-10-17 |
+| D7 | **GUI chính là của Tuan** (nhánh `gui/gui1`). GUI trong nhánh `huyhoang` chỉ là bản tạm để thử engine, bỏ đi khi gộp. | Cả nhóm thống nhất; thực hiện trong PR #5 | 2026-10-18 |
 
 ## Chưa chốt
 
 | # | Vấn đề | `huyhoang` đang làm | `develop-refactor` đang làm | Ghi chú |
 |---|---|---|---|---|
-| U1 | **Dùng engine nào** làm engine chính? | Đầy đủ luật + 4 solver + GUI | Code gọn hơn, đủ luật, chưa có solver | Quyết định quan trọng nhất; xem [`BRANCHES.md`](BRANCHES.md) |
-| U2 | Định dạng file màn chơi: text hay JSON? | Text (grid + `[BRIDGES]`/`[SWITCHES]`), spec trong `maps/MAP_FORMAT.txt` | JSON (`map`, `bridges`, `switches`) | Đề cho phép cả hai |
+| U1 | **Dùng engine nào** làm engine chính? | Đầy đủ luật + 4 solver có đo số liệu; GUI của Tuan đang chạy trên bản này (PR #5) | Code gọn, đủ luật, có BFS / DFS / A\* (cost, heuristic còn tạm), chưa đo số liệu | Quyết định quan trọng nhất; xem [`BRANCHES.md`](BRANCHES.md) |
+| U2 | Định dạng file màn chơi: text hay JSON? | Text (grid + `[BRIDGES]`/`[SWITCHES]`), spec trong `maps/MAP_FORMAT.txt`; 12 màn | JSON (`map`, `bridges`, `switches`); **33 màn** | Đề cho phép cả hai |
 | U3 | Khối nhỏ trên ô fragile có làm vỡ không? | Có (vỡ) | Không (an toàn) | Câu hỏi Q1 cho thầy |
 | U4 | Ghép khối có kích hoạt lại soft switch dưới khối đứng yên không? | Có | Có | Câu hỏi Q2 |
 | U5 | Cầu đóng dưới khối do chính nước đi đó gây ra: khối có rơi không? | Không (kiểm tra sàn với cầu **cũ**) | Có (kiểm tra lại sau khi cập nhật cầu) | Câu hỏi Q6 |
