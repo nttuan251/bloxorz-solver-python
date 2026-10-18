@@ -1,5 +1,6 @@
 from game.core.action import Action
 from game.core.level import Level
+from game.core.move import Move
 from game.core.state import State
 from game.logic.state_manager import StateManager
 
@@ -24,8 +25,8 @@ class BloxorzGame:
 
         return state.is_standing() and state.get_first_coords() == goal_coords
 
-    def successors(self, state: State) -> list[State]:
-        successors = []
+    def successors(self, state: State) -> list[Move]:
+        successors: list[Move] = []
 
         for action in list(Action):
             if action == Action.SWITCH_CONTROL and not state.is_split():
@@ -34,6 +35,6 @@ class BloxorzGame:
             move_result = self.state_manager.act_and_activate_triggers(state, action)
 
             if move_result is not None:
-                successors.append(move_result)
+                successors.append((action, move_result))
 
         return successors
