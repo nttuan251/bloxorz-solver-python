@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from core.level import Level
-from core.state import State
+from ..core.level import Level
+from ..core.state import State
 
 
 def heuristic(s: State, level: Level) -> float:

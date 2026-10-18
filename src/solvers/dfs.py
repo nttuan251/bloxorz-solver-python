@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from core.game import BloxorzGame
-from core.state import State
-from core.tile import Action
+from ..core.game import BloxorzGame
+from ..core.state import State
+from ..core.tile import Action
 from .base import Solution, solve_with_stats
 
 

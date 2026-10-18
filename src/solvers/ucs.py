@@ -9,9 +9,9 @@ from __future__ import annotations
 import heapq
 import itertools
 
-from core.game import BloxorzGame
-from core.state import State
-from core.tile import Action
+from ..core.game import BloxorzGame
+from ..core.state import State
+from ..core.tile import Action
 from .base import Solution, solve_with_stats
 
 

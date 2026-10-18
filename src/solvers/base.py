@@ -6,9 +6,9 @@ import time
 import tracemalloc
 from dataclasses import dataclass, field
 
-from core.game import BloxorzGame
-from core.state import State
-from core.tile import Action
+from ..core.game import BloxorzGame
+from ..core.state import State
+from ..core.tile import Action
 
 
 @dataclass
