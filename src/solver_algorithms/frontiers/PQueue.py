@@ -1,7 +1,7 @@
 import heapq
 
 from game.core.state import State
-from solvers.frontiers.Frontier import Frontier
+from solver_algorithms.frontiers.Frontier import Frontier
 
 InternalState = tuple[float, int, State]
 

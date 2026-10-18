@@ -1,10 +1,10 @@
 from collections import deque
 
 from game.core.state import State
-from solvers.frontiers.Frontier import Frontier
+from solver_algorithms.frontiers.Frontier import Frontier
 
 
-class Stack(Frontier):
+class Queue(Frontier):
     def __init__(self) -> None:
         super().__init__()
         self.data: deque[State] = deque()
@@ -21,6 +21,6 @@ class Stack(Frontier):
         if len(self.data) == 0:
             return None
 
-        state = self.data.pop()
+        state = self.data.popleft()
         self.lookup_data.remove(state)
         return state
