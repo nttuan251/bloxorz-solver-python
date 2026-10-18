@@ -65,3 +65,18 @@ class Level:
 
     def is_fragile_tile(self, coords: Coordinate) -> bool:
         return self.map.get(coords) == TileType.FRAGILE
+
+    def get_split_switches(self) -> list[tuple[Coordinate, tuple[Coordinate, Coordinate]]]:
+        """Each split switch with the two cells its cubes are teleported to."""
+        split_switches = []
+
+        for coords, tile in self.map.items():
+            if tile == TileType.SPLIT_SWITCH:
+                destinations = self.get_associated_coords_and_actions_from_switch(coords)
+                split_switches.append((coords, (destinations[0][0], destinations[1][0])))
+
+        return split_switches
+
+    @staticmethod
+    def manhattan_distance(coords1: Coordinate, coords2: Coordinate) -> int:
+        return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])

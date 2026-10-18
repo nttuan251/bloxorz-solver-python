@@ -3,6 +3,9 @@ from typing import ClassVar
 from game.core.level import Level
 from solver_algorithms.core.cost_calculator_type import CostCalculatorType
 from solver_algorithms.cost_calculator.cost_calculator import CostCalculator
+from solver_algorithms.cost_calculator.risk_aware_cost_calculator import (
+    RiskAwareCostCalculator,
+)
 from solver_algorithms.cost_calculator.uniform_cost_calculator import (
     UniformCostCalculator,
 )
@@ -10,7 +13,8 @@ from solver_algorithms.cost_calculator.uniform_cost_calculator import (
 
 class CostCalculatorFactory:
     _registry: ClassVar[dict[CostCalculatorType, type[CostCalculator]]] = {
-        CostCalculatorType.UNIFORM: UniformCostCalculator
+        CostCalculatorType.UNIFORM: UniformCostCalculator,
+        CostCalculatorType.RISK_AWARE: RiskAwareCostCalculator,
     }
 
     @classmethod
