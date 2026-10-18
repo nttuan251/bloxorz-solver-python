@@ -12,12 +12,24 @@ from src.gui.block import Block
 from src.gui.ui import HUD
 import src.gui.config as config
 
+MAPS_DIR = Path(__file__).resolve().parents[2] / "maps"
+
+
+def list_level_files():
+    """Danh sách file màn chơi trong thư mục maps/, sắp xếp theo tên (bỏ qua MAP_FORMAT.txt)."""
+    return sorted(MAPS_DIR.glob("level*.txt"))
+
 
 class GameController:
     """Điều phối chính toàn bộ luồng tương tác, logic trò chơi, camera và giao diện GUI."""
 
-    def __init__(self, max_levels=33):
+    def __init__(self, max_levels=None):
         """Khởi tạo bộ điều khiển trò chơi, thiết lập camera, giao diện HUD và tải màn đầu tiên."""
+        self.level_files = list_level_files()
+        if not self.level_files:
+            raise FileNotFoundError(f"Không tìm thấy file màn chơi nào trong {MAPS_DIR}")
+        if max_levels is None or max_levels > len(self.level_files):
+            max_levels = len(self.level_files)
         self.max_levels = max_levels
         self.current_level_num = 1
         self.manual_moves = 0
@@ -117,9 +129,7 @@ class GameController:
             if self.block:
                 self.block.destroy_block()
 
-            path = Path(f"maps/level_{level_num:02d}.txt")
-            if not path.exists():
-                path = Path("maps/level_01.txt")
+            path = self.level_files[level_num - 1]
 
             self.level = load_level(path)
             self.game = BloxorzGame(self.level)

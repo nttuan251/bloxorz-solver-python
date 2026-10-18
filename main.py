@@ -4,7 +4,7 @@ from src.gui.controller import GameController
 
 app = Ursina(title="Bloxorz Game")
 
-controller = GameController(max_levels=33)
+controller = GameController()
 
 def update():
     controller.update()
