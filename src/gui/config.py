@@ -5,15 +5,13 @@ TILE_SCALE = Vec3(0.95, 0.2, 0.95)
 
 TILE_CONFIGS = {
     'S': {'color': color.lime, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
-    'T': {'color': color.dark_gray, 'model': 'cube', 'scale': Vec3(0.95, 0.05, 0.95), 'y': -0.25},
+    'T': {'color': color.white, 'model': 'cube', 'scale': Vec3(0.95, 0.05, 0.95), 'y': -0.15},
     'o': {'color': color.gray, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
     '.': {'color': color.gray, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
     'A': {'color': color.gray, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
     'B_dest': {'color': color.gray, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
-    'f': {'color': color.orange, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
+    'f': {'color': color.rgb(231/255, 76/255, 60/255), 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
     'b': {'color': color.azure, 'model': 'cube', 'scale': TILE_SCALE, 'y': -0.1},
-
-    # Công tắc
     's': {'color': color.white, 'model': 'quad', 'texture': './assets/Playstation_Circle.png', 'scale': Vec3(0.7, 0.7, 0.7), 'rotation': Vec3(90, 0, 0), 'y': 0.005},
     'h': {'color': color.white, 'model': 'quad', 'texture': './assets/Playstation_Cross.png', 'scale': Vec3(0.7, 0.7, 0.7), 'rotation': Vec3(90, 0, 0), 'y': 0.005},
     'p': {'color': color.white, 'model': 'quad', 'texture': './assets/Playstation_Triangle.png', 'scale': Vec3(0.7, 0.7, 0.7), 'rotation': Vec3(90, 0, 0), 'y': 0.005},
