@@ -1,0 +1,98 @@
+BLOXORZ TXT MAP FORMAT (agreed 2026-10-15)
+========================================
+
+File = GRID + optional FOOTER (blank line + [BRIDGES] / [SWITCHES]).
+Rows are 0-indexed (r,c). Ragged rows are padded with void '-'.
+
+1) GRID symbols (1 char per cell)
+--------------------------------
+- or space : void (fall -> illegal move)
+o or .     : normal floor ('.' is legacy alias, same as 'o')
+S          : start, standing. Also floor.
+T          : goal hole. Support like floor, but win ONLY when a
+             non-split block is STANDING on T. Lying across T or a
+             single cube on T is valid but NOT a win.
+f          : fragile (orange). Standing block or single cube on f -> fall.
+             Lying block across f (one or two f cells) is safe.
+b          : bridge cell. Passable iff its group is OPEN, else void.
+             Default init = closed.
+s          : soft switch (circle). Fires when ANY part presses it.
+             In split mode the moving cube fires it. Cannot win, no merge effect.
+h          : heavy switch (X). Fires ONLY when non-split block is STANDING
+             on it. Lying over it does nothing. Single cubes never fire it.
+p          : split switch "( )". Fires ONLY when non-split block is STANDING
+             on it. Teleports to A,B and splits into two 1x1x1 cubes.
+A / B      : split destinations (also floor). Used when footer says "-> A B".
+
+Legacy maps level01-09.txt use only o - S T . and still load (no footer).
+
+2) FOOTER
+---------
+[BRIDGES]
+b0: (r,c) (r,c) ... [init=open|init=closed]   (default closed)
+b1: (r,c) ... init=open
+
+[SWITCHES]
+soft (r,c) -> b0,b1 toggle        # toggle each entry
+heavy (r,c) -> b0 open            # permanent open
+heavy (r,c) -> b0 closed          # permanent closed
+soft (r,c)                        # no targets = render only, no-op
+split (r,c) -> A=(ra,ca) B=(rb,cb)
+split (r,c) -> (ra,ca) (rb,cb) bridges=b0 mode=toggle
+
+Rules agreed:
+- Bridge default = closed.
+- Switch fires EVERY time a move lands on it (re-entry flips again).
+- Support is checked with the OLD mask; a bridge opened by this same
+  landing does NOT retroactively save a part that landed on a closed bridge.
+- Permanent = set to fixed state (open/closed, default open).
+
+3) SPLIT / MERGE rules
+----------------------
+- p fires only on standing. Destinations A,B must both have tiles
+  (and not be fragile/closed-bridge), else the move is illegal.
+- After split: cubes move 1 cell per roll (UP/DOWN/LEFT/RIGHT on the
+  ACTIVE cube). SWITCH action (spacebar) flips active cube, cost 1.
+- Single cube fires soft only; never heavy/split; never wins.
+- Single cube on fragile/void/closed-bridge = illegal.
+- Cubes orthogonally adjacent after a move auto-merge into a lying
+  1x1x2 block (same 2 cells). Merge landing fires soft again for the
+  other half per "any part presses it".
+
+4) COST / HEURISTIC (agreed)
+----------------------------
+- cost = 1 for every action incl. SWITCH.
+- Consequence: UCS reduces to BFS (still implemented with heap for report).
+- A* h = min_manhattan/2 + (0 if standing else 0.5); split uses min/2.
+  Admissible under cost 1 (one roll shifts Manhattan by <= 2).
+
+5) Minimal examples
+-------------------
+Fragile:
+  -----
+  -Sofo
+  -offT
+  -----
+
+Bridge + soft toggle:
+  -------
+  -Soooo-
+  -oosoo-
+  -ooboo-
+  -ooToo-
+  -------
+  [BRIDGES]
+  b0: (3,3) init=closed
+  [SWITCHES]
+  soft (2,3) -> b0 toggle
+
+Split (A,B markers):
+  --------
+  -Sppooo-
+  -oooooo-
+  -AoooBo-
+  -oooToo-
+  --------
+  [BRIDGES]
+  [SWITCHES]
+  split (1,2) -> A B
