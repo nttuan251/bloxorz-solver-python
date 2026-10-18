@@ -13,6 +13,7 @@ ENV/
 # Benchmark results / Cache
 *.csv
 *.png
+!src/gui/assets/*.png
 .pytest_cache/
 
 # project descriptor
