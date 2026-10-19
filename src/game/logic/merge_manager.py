@@ -1,4 +1,4 @@
-from game.core.state import State
+from src.game.core.state import State
 
 
 class MergeManager:

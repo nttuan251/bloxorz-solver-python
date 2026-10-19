@@ -1,7 +1,7 @@
 from pathlib import Path
 
-from solver_algorithms.core.solver_type import SolverType
-from solver_algorithms.solver_runner import SolverRunner
+from src.solver_algorithms.core.solver_type import SolverType
+from src.solver_algorithms.solver_runner import SolverRunner
 
 if __name__ == "__main__":
     file_location = Path(__file__).resolve().parent.parent / "maps" / "level_01.json"

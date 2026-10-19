@@ -1,13 +1,13 @@
 from abc import ABC, abstractmethod
 
-from game.core.action import Action
-from game.core.level import Level
-from game.core.move import Move
-from game.core.state import State
-from game.logic.engine import BloxorzGame
-from solver_algorithms.core.cost_calculator_type import CostCalculatorType
-from solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
-from solver_algorithms.frontiers.Frontier import Frontier
+from src.game.core.action import Action
+from src.game.core.level import Level
+from src.game.core.move import Move
+from src.game.core.state import State
+from src.game.logic.engine import BloxorzGame
+from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
+from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
+from src.solver_algorithms.frontiers.Frontier import Frontier
 
 
 class Solver(ABC):

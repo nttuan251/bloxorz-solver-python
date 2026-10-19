@@ -1,8 +1,8 @@
-from game.core.action import Action
-from game.core.level import Level
-from game.core.move import Move
-from game.core.state import State
-from game.logic.state_manager import StateManager
+from src.game.core.action import Action
+from src.game.core.level import Level
+from src.game.core.move import Move
+from src.game.core.state import State
+from src.game.logic.state_manager import StateManager
 
 
 class BloxorzGame:

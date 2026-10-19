@@ -1,17 +1,17 @@
-from game.core.level import Level
-from game.core.move import Move
-from game.core.state import State
-from game.logic.engine import BloxorzGame
-from solver_algorithms.core.cost_calculator_type import CostCalculatorType
-from solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
-from solver_algorithms.cost_calculator.cost_calculator_factory import (
+from src.game.core.level import Level
+from src.game.core.move import Move
+from src.game.core.state import State
+from src.game.logic.engine import BloxorzGame
+from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
+from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
+from src.solver_algorithms.cost_calculator.cost_calculator_factory import (
     CostCalculatorFactory,
 )
-from solver_algorithms.frontiers.PQueue import PQueue
-from solver_algorithms.heuristic.heuristic_calculator_factory import (
+from src.solver_algorithms.frontiers.PQueue import PQueue
+from src.solver_algorithms.heuristic.heuristic_calculator_factory import (
     HeuristicCalculatorFactory,
 )
-from solver_algorithms.solvers.solver import Solver
+from src.solver_algorithms.solvers.solver import Solver
 
 
 class AStarSolver(Solver):

@@ -1,7 +1,7 @@
-from game.core.coordinate import Coordinate
-from game.core.level import Level
-from game.core.state import State
-from game.logic.switch_activator import SwitchActivator
+from src.game.core.coordinate import Coordinate
+from src.game.core.level import Level
+from src.game.core.state import State
+from src.game.logic.switch_activator import SwitchActivator
 
 
 class SwitchManager:

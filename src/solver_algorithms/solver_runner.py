@@ -2,14 +2,14 @@ import gc
 import time
 import tracemalloc
 
-from game.core.action import Action
-from game.logic.engine import BloxorzGame
-from game.logic.level_loader import LevelLoader
-from solver_algorithms.core.cost_calculator_type import CostCalculatorType
-from solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
-from solver_algorithms.core.solution_with_metrics import SolutionWithMetrics
-from solver_algorithms.core.solver_type import SolverType
-from solver_algorithms.solvers.solver_factory import SolverFactory
+from src.game.core.action import Action
+from src.game.logic.engine import BloxorzGame
+from src.game.logic.level_loader import LevelLoader
+from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
+from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
+from src.solver_algorithms.core.solution_with_metrics import SolutionWithMetrics
+from src.solver_algorithms.core.solver_type import SolverType
+from src.solver_algorithms.solvers.solver_factory import SolverFactory
 
 
 class SolverRunner:
