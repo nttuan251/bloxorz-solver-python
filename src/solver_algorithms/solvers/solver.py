@@ -26,6 +26,8 @@ class Solver(ABC):
         self.parent_map: dict[State, tuple[Action, State, float]] = {}
 
     def solve(self) -> tuple[list[Action], float]:
+        self._reset_internal_states()
+
         self.frontier.push(self.engine.start_state(), 0)
 
         while True:
@@ -99,6 +101,10 @@ class Solver(ABC):
         current_state: State,
         next_move: Move,
     ) -> None:
+        pass
+
+    @abstractmethod
+    def _reset_internal_states(self) -> None:
         pass
 
     @abstractmethod

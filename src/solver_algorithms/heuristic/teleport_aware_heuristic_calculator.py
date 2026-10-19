@@ -45,30 +45,44 @@ class TeleportAwareHeuristicCalculator(HeuristicCalculator):
 
     def _calculate_after_teleport_bounds(self) -> dict[Coordinate, int]:
         # Fixed point over the split switches; values only decrease, so it ends.
-        after_teleport = {
-            switch: min(self._actions_to_reach(dest, self.goal) for dest in destinations)
-            for switch, destinations in self.split_switches
+        min_actions_after_teleport = {
+            switch: min(
+                self._actions_to_reach(landing, self.goal) for landing in landing_cells
+            )
+            for switch, landing_cells in self.split_switches
         }
 
-        changed = True
-        while changed:
-            changed = False
-            for switch, destinations in self.split_switches:
-                value = min(self._bound(dest, after_teleport) for dest in destinations)
-                if value < after_teleport[switch]:
-                    after_teleport[switch] = value
-                    changed = True
+        found_improvement = True
+        while found_improvement:
+            found_improvement = False
 
-        return after_teleport
+            for switch, landing_cells in self.split_switches:
+                best_from_landing = min(
+                    self._bound(landing, min_actions_after_teleport)
+                    for landing in landing_cells
+                )
+
+                if best_from_landing < min_actions_after_teleport[switch]:
+                    min_actions_after_teleport[switch] = best_from_landing
+                    found_improvement = True
+
+        return min_actions_after_teleport
 
     def _bound(self, coords: Coordinate, after_teleport: dict[Coordinate, int]) -> int:
-        best = self._actions_to_reach(coords, self.goal)
+        route_straight_to_goal = self._actions_to_reach(coords, self.goal)
+        best = route_straight_to_goal
 
         for switch, _ in self.split_switches:
-            best = min(best, self._actions_to_reach(coords, switch) + after_teleport[switch])
+            route_to_goal_through_switch = (
+                self._actions_to_reach(coords, switch) + after_teleport[switch]
+            )
+
+            best = min(best, route_to_goal_through_switch)
 
         return best
 
-    @staticmethod
-    def _actions_to_reach(coords1: Coordinate, coords2: Coordinate) -> int:
-        return math.ceil(Level.manhattan_distance(coords1, coords2) / 2)
+    def _actions_to_reach(self, coords1: Coordinate, coords2: Coordinate) -> int:
+        return math.ceil(self._manhattan_distance(coords1, coords2) / 2)
+
+    def _manhattan_distance(self, coords1: Coordinate, coords2: Coordinate) -> int:
+        return abs(coords1[0] - coords2[0]) + abs(coords1[1] - coords2[1])

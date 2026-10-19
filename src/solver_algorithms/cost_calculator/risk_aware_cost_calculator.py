@@ -23,15 +23,16 @@ class RiskAwareCostCalculator(CostCalculator):
         if self._is_switch_control(current_state, next_state):
             return self.SWITCH_CONTROL_COST
 
-        landed_cells = self._get_landed_cells(current_state, next_state)
+        newly_landed_on_tiles = self._get_newly_landed_on_tiles(
+            current_state, next_state
+        )
 
-        if any(self.level.is_fragile_tile(coords) for coords in landed_cells):
+        if any(self.level.is_fragile_tile(coords) for coords in newly_landed_on_tiles):
             return self.FRAGILE_COST
 
         return self.ROLL_COST
 
-    @staticmethod
-    def _is_switch_control(current_state: State, next_state: State) -> bool:
+    def _is_switch_control(self, current_state: State, next_state: State) -> bool:
         return (
             current_state.is_split()
             and next_state.is_split()
@@ -41,13 +42,20 @@ class RiskAwareCostCalculator(CostCalculator):
             != next_state.get_controlled_cube_coords()
         )
 
-    @staticmethod
-    def _get_landed_cells(current_state: State, next_state: State) -> set[Coordinate]:
-        new_cells = {next_state.get_first_coords(), next_state.get_second_coords()}
+    def _get_newly_landed_on_tiles(
+        self, current_state: State, next_state: State
+    ) -> set[Coordinate]:
+        newly_landed_on_tiles = {
+            next_state.get_first_coords(),
+            next_state.get_second_coords(),
+        }
 
         if not current_state.is_split():
-            return new_cells
+            return newly_landed_on_tiles
 
-        # When split, only the moved cube lands; the other one stays put.
-        old_cells = {current_state.get_first_coords(), current_state.get_second_coords()}
-        return (new_cells - old_cells) or new_cells
+        current_landed_on_tiles = {
+            current_state.get_first_coords(),
+            current_state.get_second_coords(),
+        }
+
+        return newly_landed_on_tiles - current_landed_on_tiles
