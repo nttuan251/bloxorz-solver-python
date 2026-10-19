@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from game.core.action import Action
+from src.game.core.action import Action
 
 
 @dataclass(frozen=True)

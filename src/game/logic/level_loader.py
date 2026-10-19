@@ -2,10 +2,10 @@ import json
 from pathlib import Path
 from typing import ClassVar
 
-from game.core.coordinate import Coordinate
-from game.core.level import Level
-from game.core.switch import SwitchActionType
-from game.core.tile import TileType
+from src.game.core.coordinate import Coordinate
+from src.game.core.level import Level
+from src.game.core.switch import SwitchActionType
+from src.game.core.tile import TileType
 
 
 class LevelLoader:

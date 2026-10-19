@@ -1,9 +1,9 @@
-from game.core.action import Action
-from game.core.level import Level
-from game.core.state import State
-from game.logic.merge_manager import MergeManager
-from game.logic.state_mover import StateMover
-from game.logic.switch_manager import SwitchManager
+from src.game.core.action import Action
+from src.game.core.level import Level
+from src.game.core.state import State
+from src.game.logic.merge_manager import MergeManager
+from src.game.logic.state_mover import StateMover
+from src.game.logic.switch_manager import SwitchManager
 
 
 class StateManager:

@@ -1,5 +1,5 @@
-from game.core.state import State
-from solver_algorithms.cost_calculator.cost_calculator import CostCalculator
+from src.game.core.state import State
+from src.solver_algorithms.cost_calculator.cost_calculator import CostCalculator
 
 
 class UniformCostCalculator(CostCalculator):

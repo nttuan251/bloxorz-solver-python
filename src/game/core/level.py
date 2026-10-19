@@ -1,6 +1,6 @@
-from game.core.coordinate import Coordinate
-from game.core.switch import SwitchActionType
-from game.core.tile import TileType
+from src.game.core.coordinate import Coordinate
+from src.game.core.switch import SwitchActionType
+from src.game.core.tile import TileType
 
 
 class Level:
@@ -24,6 +24,9 @@ class Level:
 
     def get_start(self) -> Coordinate:
         return self.start
+
+    def get_map(self) -> dict[Coordinate, TileType]:
+        return self.map
 
     def get_goal(self) -> Coordinate:
         return self.goal

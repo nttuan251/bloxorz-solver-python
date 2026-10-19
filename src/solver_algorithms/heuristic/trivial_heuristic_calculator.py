@@ -1,5 +1,5 @@
-from game.core.state import State
-from solver_algorithms.heuristic.heuristic_calculator import HeuristicCalculator
+from src.game.core.state import State
+from src.solver_algorithms.heuristic.heuristic_calculator import HeuristicCalculator
 
 
 class TrivialHeuristicCalculator(HeuristicCalculator):

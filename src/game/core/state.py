@@ -1,4 +1,4 @@
-from game.core.coordinate import Coordinate
+from src.game.core.coordinate import Coordinate
 
 
 class State:

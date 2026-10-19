@@ -1,9 +1,9 @@
 from collections.abc import Callable
 from typing import ClassVar
 
-from game.core.coordinate import Coordinate
-from game.core.state import State
-from game.core.switch import SwitchActionType
+from src.game.core.coordinate import Coordinate
+from src.game.core.state import State
+from src.game.core.switch import SwitchActionType
 
 
 class SwitchActivator:

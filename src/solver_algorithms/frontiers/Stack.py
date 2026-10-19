@@ -1,7 +1,7 @@
 from collections import deque
 
-from game.core.state import State
-from solver_algorithms.frontiers.Frontier import Frontier
+from src.game.core.state import State
+from src.solver_algorithms.frontiers.Frontier import Frontier
 
 
 class Stack(Frontier):
