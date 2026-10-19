@@ -1,30 +1,31 @@
-# src/gui/block.py
 from ursina import Entity, Vec3, color, curve, destroy, invoke, scene
+
 from src.gui import config
+
 
 class Block:
     """Quản lý hiển thị và chuyển động hoạt ảnh của khối gạch (nguyên thể và khi tách đôi)."""
 
     def __init__(self, start_r, start_c):
-        self.entity = Entity(model='cube', color=color.orange, texture='white_cube')
+        self.entity = Entity(model="cube", color=color.orange, texture="white_cube")
         self.is_animating = False
-        
+
         self.is_split = False
         self.cube1 = None
         self.cube2 = None
         self.cube1_pos = [0, 0]
         self.cube2_pos = [0, 0]
         self.active_cube_index = 1
-        
-        self.set_transform(start_r, start_c, 'STANDING')
+
+        self.set_transform(start_r, start_c, "STANDING")
 
     def get_transform(self, r, c, ori):
         """Tính toán vị trí (position) và tỷ lệ (scale) 3D dựa trên tọa độ hàng, cột và hướng đặt của khối gạch."""
-        if ori == 'STANDING':
+        if ori == "STANDING":
             return Vec3(c, 1.0, -r), Vec3(0.9, 2.0, 0.9)
-        elif ori == 'LYING_H':
+        elif ori == "LYING_H":
             return Vec3(c + 0.5, 0.45, -r), Vec3(1.9, 0.9, 0.9)
-        elif ori == 'LYING_V':
+        elif ori == "LYING_V":
             return Vec3(c, 0.45, -(r + 0.5)), Vec3(0.9, 0.9, 1.9)
 
     def set_transform(self, r, c, ori):
@@ -50,12 +51,16 @@ class Block:
         self.cube2_pos = [r2, c2]
 
         self.cube1 = Entity(
-            model='cube', texture='white_cube',
-            position=Vec3(c1, 0.45, -r1), scale=Vec3(0.9, 0.9, 0.9)
+            model="cube",
+            texture="white_cube",
+            position=Vec3(c1, 0.45, -r1),
+            scale=Vec3(0.9, 0.9, 0.9),
         )
         self.cube2 = Entity(
-            model='cube', texture='white_cube',
-            position=Vec3(c2, 0.45, -r2), scale=Vec3(0.9, 0.9, 0.9)
+            model="cube",
+            texture="white_cube",
+            position=Vec3(c2, 0.45, -r2),
+            scale=Vec3(0.9, 0.9, 0.9),
         )
 
         self.active_cube_index = 1
@@ -71,8 +76,8 @@ class Block:
         """Cập nhật màu sắc để phân biệt giữa khối lập phương đang chọn và khối đang chờ khi bị tách."""
         if not self.is_split or not self.cube1 or not self.cube2:
             return
-        
-        active_color = color.rgb(29/255, 209/255, 161/255)
+
+        active_color = color.rgb(29 / 255, 209 / 255, 161 / 255)
         inactive_color = color.dark_gray
 
         if self.active_cube_index == 1:
@@ -93,18 +98,18 @@ class Block:
         """Thực hiện hoạt ảnh lăn quanh mép cho một khối lập phương nhỏ đơn lẻ."""
         self.is_animating = True
         cube = self.cube1 if cube_index == 1 else self.cube2
-        
-        if hasattr(cube, 'animations'):
+
+        if hasattr(cube, "animations"):
             cube.animations.clear()
 
         c = int(round(cube.x))
         r = int(round(-cube.z))
 
         pivot_map = {
-            'RIGHT': (Vec3(c + 0.5, 0, -r), Vec3(0, 0, 90)),
-            'LEFT':  (Vec3(c - 0.5, 0, -r), Vec3(0, 0, -90)),
-            'UP':    (Vec3(c, 0, -r + 0.5), Vec3(90, 0, 0)),
-            'DOWN':  (Vec3(c, 0, -r - 0.5), Vec3(-90, 0, 0)),
+            "RIGHT": (Vec3(c + 0.5, 0, -r), Vec3(0, 0, 90)),
+            "LEFT": (Vec3(c - 0.5, 0, -r), Vec3(0, 0, -90)),
+            "UP": (Vec3(c, 0, -r + 0.5), Vec3(90, 0, 0)),
+            "DOWN": (Vec3(c, 0, -r - 0.5), Vec3(-90, 0, 0)),
         }
         pivot_pos, rot_axis = pivot_map[action]
 
@@ -119,7 +124,7 @@ class Block:
             destroy(pivot)
             cube.position = Vec3(next_c, 0.45, -next_r)
             cube.rotation = Vec3(0, 0, 0)
-            
+
             if cube_index == 1:
                 self.cube1_pos = [next_r, next_c]
             else:
@@ -135,7 +140,9 @@ class Block:
         """Thực hiện hoạt ảnh rơi xuống vực cho một khối lập phương nhỏ đơn lẻ."""
         self.is_animating = True
         cube = self.cube1 if cube_index == 1 else self.cube2
-        cube.animate_position(cube.position + Vec3(0, -10, 0), duration=0.6, curve=curve.in_quad)
+        cube.animate_position(
+            cube.position + Vec3(0, -10, 0), duration=0.6, curve=curve.in_quad
+        )
 
         def finish():
             self.is_animating = False
@@ -150,9 +157,13 @@ class Block:
         target_pos, target_scale = self.get_transform(target_r, target_c, target_ori)
 
         if self.cube1:
-            self.cube1.animate_position(target_pos, duration=0.25, curve=curve.in_out_quad)
+            self.cube1.animate_position(
+                target_pos, duration=0.25, curve=curve.in_out_quad
+            )
         if self.cube2:
-            self.cube2.animate_position(target_pos, duration=0.25, curve=curve.in_out_quad)
+            self.cube2.animate_position(
+                target_pos, duration=0.25, curve=curve.in_out_quad
+            )
 
         def finish_merge():
             self.cleanup_split()
@@ -172,21 +183,25 @@ class Block:
             destroy(self.cube2)
             self.cube2 = None
         self.is_split = False
-        if hasattr(self, 'entity') and self.entity:
+        if hasattr(self, "entity") and self.entity:
             self.entity.enabled = True
             self.entity.color = color.orange
 
-    def animate_roll(self, pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=None):
+    def animate_roll(
+        self, pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=None
+    ):
         """Thực hiện hoạt ảnh lăn khối gạch nguyên thể quanh điểm xoay (pivot)."""
         self.is_animating = True
-        
-        if hasattr(self.entity, 'animations'):
+
+        if hasattr(self.entity, "animations"):
             self.entity.animations.clear()
 
         pivot = Entity(position=Vec3(*pivot_pos))
         self.entity.world_parent = pivot
 
-        pivot.animate_rotation(Vec3(*rot_axis), duration=config.ROLL_DURATION, curve=curve.in_out_quad)
+        pivot.animate_rotation(
+            Vec3(*rot_axis), duration=config.ROLL_DURATION, curve=curve.in_out_quad
+        )
 
         def finish():
             self.entity.world_parent = scene
@@ -198,38 +213,22 @@ class Block:
 
         invoke(finish, delay=config.ROLL_DURATION)
 
-    def animate_fall(self, level=None, r=0, c=0, ori='STANDING', bridges_mask=None, matrix=None, bridges_state=None, on_finish=None):
+    def animate_fall(
+        self, level=None, r=0, c=0, ori="STANDING", bridges_mask=None, on_finish=None
+    ):
         """Thực hiện hoạt ảnh lật mép sàn và rơi xuống vực cho khối gạch khi di chuyển ra ngoài phạm vi hợp lệ."""
         self.is_animating = True
 
+        # REFACTORED: Now completely delegates checking tile validity directly to the new engine logic.
         def is_solid(tr, tc):
-            if level is not None:
-                if tr < 0 or tr >= level.rows or tc < 0 or tc >= level.cols:
-                    return False
-                ch = level.grid[tr][tc]
-                if ch in ('-', ' '):
-                    return False
-                bid = level.bridge_at.get((tr, tc))
-                if bid is not None and bridges_mask is not None:
-                    idx = level.bridge_order.index(bid) if bid in level.bridge_order else -1
-                    if idx != -1 and not bridges_mask[idx]:
-                        return False
-                return True
-            elif matrix is not None:
-                if tr < 0 or tr >= len(matrix) or tc < 0 or tc >= len(matrix[0]):
-                    return False
-                val = matrix[tr][tc]
-                if val in ('-', ' '):
-                    return False
-                if val.upper() == 'B' and bridges_state and not bridges_state.get((tr, tc), False):
-                    return False
-                return True
+            if level is not None and bridges_mask is not None:
+                return level.is_valid_tile((tr, tc), bridges_mask)
             return False
 
         pivot_pos = None
         rot_offset = Vec3(0, 0, 0)
 
-        if ori == 'LYING_H':
+        if ori == "LYING_H":
             left_solid = is_solid(r, c)
             right_solid = is_solid(r, c + 1)
 
@@ -240,7 +239,7 @@ class Block:
                 pivot_pos = Vec3(c + 0.5, 0, -r)
                 rot_offset = Vec3(0, 0, -90)
 
-        elif ori == 'LYING_V':
+        elif ori == "LYING_V":
             top_solid = is_solid(r, c)
             bottom_solid = is_solid(r + 1, c)
 
@@ -258,7 +257,9 @@ class Block:
             pivot.animate_rotation(rot_offset, duration=0.2, curve=curve.in_quad)
 
             def drop_down():
-                pivot.animate_position(pivot.position + Vec3(0, -10, 0), duration=0.5, curve=curve.in_quad)
+                pivot.animate_position(
+                    pivot.position + Vec3(0, -10, 0), duration=0.5, curve=curve.in_quad
+                )
 
                 def finish():
                     self.entity.world_parent = scene
@@ -275,7 +276,7 @@ class Block:
             self.entity.animate_position(
                 self.entity.position + Vec3(0, -10, 0),
                 duration=0.6,
-                curve=curve.in_quad
+                curve=curve.in_quad,
             )
 
             def finish_free_fall():
@@ -293,12 +294,10 @@ class Block:
         self.entity.animate_position(
             Vec3(self.entity.x, -0.2, self.entity.z),
             duration=duration,
-            curve=curve.in_quad
+            curve=curve.in_quad,
         )
         self.entity.animate_scale(
-            Vec3(0.85, 0.0, 0.85),
-            duration=duration,
-            curve=curve.in_quad
+            Vec3(0.85, 0.0, 0.85), duration=duration, curve=curve.in_quad
         )
 
         def hide_block():
@@ -312,15 +311,27 @@ class Block:
     def animate_exit_fly_up(self, duration=0.35, on_complete=None):
         """Thực hiện hoạt ảnh khối gạch bay vút lên trên khi chọn lại hoặc chuyển màn chơi."""
         self.is_animating = True
-        
+
         if self.is_split:
             if self.cube1:
-                self.cube1.animate_position(self.cube1.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+                self.cube1.animate_position(
+                    self.cube1.position + Vec3(0, 15, 0),
+                    duration=duration,
+                    curve=curve.in_back,
+                )
             if self.cube2:
-                self.cube2.animate_position(self.cube2.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+                self.cube2.animate_position(
+                    self.cube2.position + Vec3(0, 15, 0),
+                    duration=duration,
+                    curve=curve.in_back,
+                )
         else:
-            if hasattr(self, 'entity') and self.entity:
-                self.entity.animate_position(self.entity.position + Vec3(0, 15, 0), duration=duration, curve=curve.in_back)
+            if hasattr(self, "entity") and self.entity:
+                self.entity.animate_position(
+                    self.entity.position + Vec3(0, 15, 0),
+                    duration=duration,
+                    curve=curve.in_back,
+                )
 
         def finish():
             self.is_animating = False
@@ -332,8 +343,8 @@ class Block:
     def animate_drop_in(self, target_r, target_c, delay=0.0, on_complete=None):
         """Thực hiện hoạt ảnh khối gạch thả rơi từ trên cao xuống sàn khi bắt đầu chơi."""
         self.is_animating = True
-        target_pos, target_scale = self.get_transform(target_r, target_c, 'STANDING')
-        
+        target_pos, target_scale = self.get_transform(target_r, target_c, "STANDING")
+
         self.entity.position = Vec3(target_pos.x, 12.0, target_pos.z)
         self.entity.scale = target_scale
         self.entity.rotation = Vec3(0, 0, 0)
@@ -344,18 +355,17 @@ class Block:
         def start_drop():
             self.entity.enabled = True
             self.entity.animate_position(
-                target_pos,
-                duration=drop_duration,
-                curve=curve.out_bounce
+                target_pos, duration=drop_duration, curve=curve.out_bounce
             )
+
             def finish():
-                if hasattr(self.entity, 'animations'):
+                if hasattr(self.entity, "animations"):
                     self.entity.animations.clear()
 
                 self.entity.position = target_pos
                 self.entity.rotation = Vec3(0, 0, 0)
                 self.is_animating = False
-                
+
                 if on_complete:
                     invoke(on_complete, delay=0.08)
 
@@ -377,6 +387,6 @@ class Block:
             self.cube2 = None
         self.is_split = False
 
-        if hasattr(self, 'entity') and self.entity:
+        if hasattr(self, "entity") and self.entity:
             destroy(self.entity)
             self.entity = None

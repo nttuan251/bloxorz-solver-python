@@ -1,36 +1,186 @@
-# src/gui/controller.py
-import threading
-from pathlib import Path
-from ursina import camera, Entity, Vec3, lerp, time, held_keys, mouse, invoke, color
+"""Game controller: glue between the Bloxorz engine/solver and the Ursina GUI.
 
-from src.core.loader import load_level
-from src.core.game import BloxorzGame
-from src.core.tile import Action
-from src.solvers import SOLVERS
-from src.gui.board import Board
-from src.gui.block import Block
-from src.gui.ui import HUD
+Design rules
+------------
+* The engine is the single source of truth. The controller never simulates
+  moves on its own: it asks ``BloxorzGame.successors`` for the legal next
+  states, and any action that is not among them is animated as a failure.
+* The GUI only *renders* what the engine decided. The one piece of GUI-side
+  bookkeeping is ``_cube_slots``: which cube *sprite* (slot 1 or 2) currently
+  sits on which tile. The engine stores split cubes as an unordered pair that
+  can swap order between states, so sprite identity must never be derived from
+  "first/second coords".
+"""
+
+from __future__ import annotations
+
+import threading
+import traceback
+from collections.abc import Callable
+from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import TYPE_CHECKING
+
+from ursina import Entity, Vec3, camera, held_keys, invoke, lerp, mouse, time
+
 import src.gui.config as config
+from src.game.core.action import Action
+from src.game.logic.engine import BloxorzGame
+from src.game.logic.level_loader import LevelLoader
+from src.gui.block import Block
+from src.gui.board import Board
+from src.gui.ui import HUD
+from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
+from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
+from src.solver_algorithms.core.solver_type import SolverType
+from src.solver_algorithms.solver_runner import SolverRunner
+
+if TYPE_CHECKING:
+    # Adjust these two paths to wherever Level / State live in your project.
+    from src.game.core.level import Level
+    from src.game.core.state import State
+
+Coordinate = tuple[int, int]
+Vec3Tuple = tuple[float, float, float]
+Callback = Callable[[], None]
+
+
+# --------------------------------------------------------------------------- #
+# Pure geometry helpers (no GUI, no engine state)
+# --------------------------------------------------------------------------- #
+
+
+class Orientation(str, Enum):
+    """Values match the strings the Block animations already expect."""
+
+    STANDING = "STANDING"
+    LYING_H = "LYING_H"
+    LYING_V = "LYING_V"
+
+
+@dataclass(frozen=True)
+class BlockPose:
+    """Where a whole block sits, anchored at its top-left occupied tile."""
+
+    row: int
+    col: int
+    orientation: Orientation
+
+    @classmethod
+    def from_state(cls, state: State) -> BlockPose:
+        r1, c1 = state.get_first_coords()
+        r2, c2 = state.get_second_coords()
+        if state.is_lying_horizontally():
+            return cls(r1, min(c1, c2), Orientation.LYING_H)
+        if state.is_lying_vertically():
+            return cls(min(r1, r2), c1, Orientation.LYING_V)
+        return cls(r1, c1, Orientation.STANDING)
+
+    def after(self, action: Action) -> BlockPose:
+        d_row, d_col, orientation = _POSE_TRANSITIONS[self.orientation][action]
+        return BlockPose(self.row + d_row, self.col + d_col, orientation)
+
+    def roll_pivot(self, action: Action) -> tuple[Vec3Tuple, Vec3Tuple]:
+        """Return (pivot position, rotation axis) for rolling in ``action``."""
+        r, c = self.row, self.col
+        if self.orientation is Orientation.STANDING:
+            table = {
+                Action.RIGHT: ((c + 0.5, 0, -r), (0, 0, 90)),
+                Action.LEFT: ((c - 0.5, 0, -r), (0, 0, -90)),
+                Action.UP: ((c, 0, -r + 0.5), (90, 0, 0)),
+                Action.DOWN: ((c, 0, -r - 0.5), (-90, 0, 0)),
+            }
+        elif self.orientation is Orientation.LYING_H:
+            table = {
+                Action.RIGHT: ((c + 1.5, 0, -r), (0, 0, 90)),
+                Action.LEFT: ((c - 0.5, 0, -r), (0, 0, -90)),
+                Action.UP: ((c + 0.5, 0, -r + 0.5), (90, 0, 0)),
+                Action.DOWN: ((c + 0.5, 0, -r - 0.5), (-90, 0, 0)),
+            }
+        else:
+            table = {
+                Action.RIGHT: ((c + 0.5, 0, -(r + 0.5)), (0, 0, 90)),
+                Action.LEFT: ((c - 0.5, 0, -(r + 0.5)), (0, 0, -90)),
+                Action.UP: ((c, 0, -r + 0.5), (90, 0, 0)),
+                Action.DOWN: ((c, 0, -(r + 1.5)), (-90, 0, 0)),
+            }
+        return table[action]
+
+
+# (row offset, col offset, resulting orientation) of the anchor tile per action.
+_POSE_TRANSITIONS: dict[Orientation, dict[Action, tuple[int, int, Orientation]]] = {
+    Orientation.STANDING: {
+        Action.RIGHT: (0, 1, Orientation.LYING_H),
+        Action.LEFT: (0, -2, Orientation.LYING_H),
+        Action.UP: (-2, 0, Orientation.LYING_V),
+        Action.DOWN: (1, 0, Orientation.LYING_V),
+    },
+    Orientation.LYING_H: {
+        Action.RIGHT: (0, 2, Orientation.STANDING),
+        Action.LEFT: (0, -1, Orientation.STANDING),
+        Action.UP: (-1, 0, Orientation.LYING_H),
+        Action.DOWN: (1, 0, Orientation.LYING_H),
+    },
+    Orientation.LYING_V: {
+        Action.RIGHT: (0, 1, Orientation.LYING_V),
+        Action.LEFT: (0, -1, Orientation.LYING_V),
+        Action.UP: (-1, 0, Orientation.STANDING),
+        Action.DOWN: (2, 0, Orientation.STANDING),
+    },
+}
+
+_DIRECTION_DELTAS: dict[Action, Coordinate] = {
+    Action.UP: (-1, 0),
+    Action.DOWN: (1, 0),
+    Action.LEFT: (0, -1),
+    Action.RIGHT: (0, 1),
+}
+
+_KEY_BINDINGS: dict[str, Action] = {
+    "right arrow": Action.RIGHT,
+    "left arrow": Action.LEFT,
+    "up arrow": Action.UP,
+    "down arrow": Action.DOWN,
+    "space": Action.SWITCH_CONTROL,
+}
+
+_SOLVER_TYPES: dict[str, SolverType] = {
+    "bfs": SolverType.BFS,
+    "dfs": SolverType.DFS,
+    "ucs": SolverType.A_STAR,
+    "astar": SolverType.A_STAR,
+}
+
+_AUTOPLAY_STEP_DELAY = 0.08
+
+
+# --------------------------------------------------------------------------- #
+# Controller
+# --------------------------------------------------------------------------- #
 
 
 class GameController:
-    """Điều phối chính toàn bộ luồng tương tác, logic trò chơi, camera và giao diện GUI."""
+    """Coordinates input, engine, solver playback, camera and HUD."""
 
-    def __init__(self, max_levels=33):
-        """Khởi tạo bộ điều khiển trò chơi, thiết lập camera, giao diện HUD và tải màn đầu tiên."""
+    def __init__(self, max_levels: int = 33) -> None:
         self.max_levels = max_levels
         self.current_level_num = 1
         self.manual_moves = 0
         self.is_auto_playing = False
-        self.current_replay_id = 0
+        self._replay_id = 0  # bumped whenever a running replay must be cancelled
 
-        self.level = None
-        self.game = None
-        self.current_state = None
-        self.board = None
-        self.block = None
-        self.cam_pivot = None
-        self.target_fov = config.CAMERA_FOV
+        self.level: Level
+        self.game: BloxorzGame
+        self.state: State
+        self.board: Board
+        self.block: Block
+
+        # Sprite slot (1 or 2) -> tile it currently occupies. Only meaningful
+        # while the block is split.
+        self._cube_slots: dict[int, Coordinate] = {}
+
+        self.target_fov: float = config.CAMERA_FOV
 
         self.hud = HUD(
             on_solve_click=self.solve_and_play,
@@ -38,9 +188,17 @@ class GameController:
             on_level_change=self.change_level,
             on_select_level=self.select_stage_direct,
             on_restart_click=lambda: self.restart_with_fly_up(update_hud=True),
-            max_levels=self.max_levels
+            max_levels=self.max_levels,
         )
 
+        self._setup_camera()
+        self.load_stage(self.current_level_num, initial=True)
+
+    # ------------------------------------------------------------------ #
+    # Camera / per-frame update / input
+    # ------------------------------------------------------------------ #
+
+    def _setup_camera(self) -> None:
         self.cam_pivot = Entity()
         camera.orthographic = config.CAMERA_ORTHOGRAPHIC
         camera.parent = self.cam_pivot
@@ -48,400 +206,416 @@ class GameController:
         camera.rotation = config.CAMERA_ROT
         camera.fov = config.CAMERA_FOV
 
-        self.load_stage(self.current_level_num, initial=True)
+    def update(self) -> None:
+        if not getattr(self, "block", None):
+            return
 
-    def is_tile_solid(self, r, c, bridges_mask):
-        """Kiểm tra một ô tại vị trí (r, c) có phải là sàn vững chắc không (không phải Void hay Cầu đóng)."""
-        if r < 0 or r >= self.level.rows or c < 0 or c >= self.level.cols:
-            return False
-        ch = self.level.grid[r][c]
-        if ch in ('-', ' '):
-            return False
-        bid = self.level.bridge_at.get((r, c))
-        if bid is not None and bridges_mask is not None:
-            idx = self.level.bridge_order.index(bid) if bid in self.level.bridge_order else -1
-            if idx != -1 and not bridges_mask[idx]:
-                return False
-        return True
+        active_cube = self.block.get_active_cube()
+        if active_cube:
+            target = Vec3(active_cube.world_x, 0, active_cube.world_z)
+            self.cam_pivot.position = lerp(
+                self.cam_pivot.position, target, time.dt * config.CAMERA_SPEED
+            )
 
-    def update(self):
-        """Cập nhật vị trí camera bám theo khối gạch và xử lý xoay góc nhìn theo chuột mỗi khung hình."""
-        if self.block:
-            active_target = self.block.get_active_cube()
-            if active_target:
-                target_pos = Vec3(active_target.world_x, 0, active_target.world_z)
-                self.cam_pivot.position = lerp(self.cam_pivot.position, target_pos, time.dt * config.CAMERA_SPEED)
+        if held_keys["left mouse"]:
+            self.cam_pivot.rotation_y += mouse.velocity[0] * config.MOUSE_SENSITIVITY
+            self.cam_pivot.rotation_x -= mouse.velocity[1] * config.MOUSE_SENSITIVITY
+        else:
+            self.cam_pivot.rotation = lerp(
+                self.cam_pivot.rotation, Vec3(0, 0, 0), time.dt * config.RESET_SPEED
+            )
 
-            if held_keys['left mouse']:
-                self.cam_pivot.rotation_y += mouse.velocity[0] * config.MOUSE_SENSITIVITY
-                self.cam_pivot.rotation_x -= mouse.velocity[1] * config.MOUSE_SENSITIVITY
-            else:
-                self.cam_pivot.rotation = lerp(self.cam_pivot.rotation, Vec3(0, 0, 0), time.dt * config.RESET_SPEED)
+        camera.fov = lerp(camera.fov, self.target_fov, time.dt * config.ZOOM_SPEED)
 
-            camera.fov = lerp(camera.fov, self.target_fov, time.dt * config.ZOOM_SPEED)
-
-    def handle_input(self, key):
-        """Bắt và xử lý các sự kiện bàn phím cũng như thao tác cuộn chuột từ người dùng."""
-        if key == 'scroll up':
+    def handle_input(self, key: str) -> None:
+        if key == "scroll up":
             self.target_fov = max(config.MIN_FOV, self.target_fov - config.ZOOM_STEP)
             return
-        elif key == 'scroll down':
-            self.target_fov = min(config.MAX_FOV, self.target_fov + config.ZOOM_SPEED)
+        if key == "scroll down":
+            # NOTE: the old code added ZOOM_SPEED here (copy/paste bug).
+            self.target_fov = min(config.MAX_FOV, self.target_fov + config.ZOOM_STEP)
             return
 
         if self.is_auto_playing:
             return
 
-        key_map = {
-            'right arrow': Action.RIGHT,
-            'left arrow': Action.LEFT,
-            'up arrow': Action.UP,
-            'down arrow': Action.DOWN,
-            'space': Action.SWITCH
-        }
-        if key in key_map:
-            self.handle_action(key_map[key])
-        elif key == 'r':
+        if key in _KEY_BINDINGS:
+            self.handle_action(_KEY_BINDINGS[key])
+        elif key == "r":
             self.restart_with_fly_up(update_hud=True)
 
-    def load_stage(self, level_num, initial=False):
-        """Tải dữ liệu màn chơi mới và kích hoạt hiệu ứng chuyển cảnh tương ứng."""
+    # ------------------------------------------------------------------ #
+    # Level lifecycle
+    # ------------------------------------------------------------------ #
+
+    @staticmethod
+    def _get_map_path(level_num: int) -> str:
+        """Single source of truth for map paths (used by loader and solver)."""
+        json_path = f"maps/level_{level_num:02d}.json"
+        if Path(json_path).exists():
+            return json_path
+        return f"maps/level_{level_num:02d}.txt"
+
+    def load_stage(self, level_num: int, initial: bool = False) -> None:
         self.current_level_num = level_num
-        self.is_auto_playing = False
-        self.current_replay_id += 1
+        self._cancel_replay()
         self.manual_moves = 0
 
-        def init_new_stage():
-            if self.board:
-                self.board.destroy_board()
-            if self.block:
-                self.block.destroy_block()
-
-            path = Path(f"maps/level_{level_num:02d}.txt")
-            if not path.exists():
-                path = Path("maps/level_01.txt")
-
-            self.level = load_level(path)
-            self.game = BloxorzGame(self.level)
-            self.current_state = self.game.start_state()
-
-            start_r, start_c = self.level.start
-            self.board = Board(self.level, animate_entrance=True, start_delay=0.3)
-            self.board.sync_bridges(self.current_state.bridges, animate_entrance=True)
-            self.block = Block(start_r, start_c)
-            self.block.animate_drop_in(start_r, start_c, delay=self.board.get_entrance_duration())
-
-            self.cam_pivot.position = self.block.entity.world_position
-
-            self.hud.update_level_display(level_num)
-            self.hud.update_stats(f"[LEVEL {level_num:02d} - MANUAL MODE]\nMoves: 0")
-
-        if not initial and self.board and self.block:
+        if (
+            not initial
+            and getattr(self, "board", None)
+            and getattr(self, "block", None)
+        ):
             self.block.animate_exit_fly_up(duration=0.4)
-            self.board.animate_exit_fall_down(pause_duration=0.35, on_complete=init_new_stage)
+            self.board.animate_exit_fall_down(
+                pause_duration=0.35, on_complete=lambda: self._build_stage(level_num)
+            )
         else:
-            init_new_stage()
+            self._build_stage(level_num)
 
-    def change_level(self, delta):
-        """Chuyển đổi màn chơi theo bước tăng hoặc giảm chỉ định."""
+    def _build_stage(self, level_num: int) -> None:
+        if getattr(self, "board", None):
+            self.board.destroy_board()
+        if getattr(self, "block", None):
+            self.block.destroy_block()
+
+        self.level = LevelLoader.parse_level_from_file(self._get_map_path(level_num))
+        self.game = BloxorzGame(self.level)
+        self.state = self.game.start_state()
+        self._cube_slots.clear()
+
+        start_row, start_col = self.level.get_start()
+        self.board = Board(self.level, animate_entrance=True, start_delay=0.3)
+        self.board.sync_bridges(
+            self.state.get_bridges_open_states(), animate_entrance=True
+        )
+        self.block = Block(start_row, start_col)
+        self.block.animate_drop_in(
+            start_row, start_col, delay=self.board.get_entrance_duration()
+        )
+
+        self.cam_pivot.position = self.block.entity.world_position
+        self.hud.update_level_display(level_num)
+        self._show_manual_stats()
+
+    def change_level(self, delta: int) -> None:
         target = max(1, min(self.max_levels, self.current_level_num + delta))
         if target != self.current_level_num:
             self.load_stage(target)
 
-    def select_stage_direct(self, level_num):
-        """Tải trực tiếp màn chơi theo số màn được chọn."""
+    def select_stage_direct(self, level_num: int) -> None:
         if level_num != self.current_level_num:
             self.load_stage(level_num)
 
-    def switch_to_manual(self):
-        """Chuyển về chế độ người chơi tự điều khiển và làm mới lại bàn chơi."""
-        if self.is_auto_playing:
-            return
-        self.restart_with_fly_up(update_hud=True)
+    def switch_to_manual(self) -> None:
+        if not self.is_auto_playing:
+            self.restart_with_fly_up(update_hud=True)
 
-    def reset_game(self, drop_in=False, on_complete=None, update_hud=True):
-        """Đặt lại trạng thái màn chơi hiện tại về ban đầu."""
-        self.is_auto_playing = False
-        self.current_replay_id += 1
-
+    def reset_game(
+        self,
+        drop_in: bool = False,
+        on_complete: Callback | None = None,
+        update_hud: bool = True,
+    ) -> None:
+        self._cancel_replay()
         self.manual_moves = 0
         if update_hud:
-            self.hud.update_stats(f"[LEVEL {self.current_level_num:02d} - MANUAL MODE]\nMoves: {self.manual_moves}")
+            self._show_manual_stats()
 
-        self.current_state = self.game.start_state()
-        start_r, start_c = self.level.start
+        self.state = self.game.start_state()
+        self._cube_slots.clear()
+        start_row, start_col = self.level.get_start()
 
-        self.board.sync_bridges(self.current_state.bridges)
+        self.board.sync_bridges(self.state.get_bridges_open_states())
         self.board.reset(animate_entrance=False)
         self.block.cleanup_split()
 
         if drop_in:
-            self.block.animate_drop_in(start_r, start_c, delay=0.0, on_complete=on_complete)
+            self.block.animate_drop_in(
+                start_row, start_col, delay=0.0, on_complete=on_complete
+            )
         else:
             self.block.is_animating = False
-            self.block.set_transform(start_r, start_c, 'STANDING')
+            self.block.set_transform(start_row, start_col, Orientation.STANDING.value)
 
-    def restart_with_fly_up(self, on_complete=None, update_hud=True):
-        """Thực hiện hiệu ứng khối gạch bay vút lên và đặt lại màn chơi mượt mà."""
+    def restart_with_fly_up(
+        self, on_complete: Callback | None = None, update_hud: bool = True
+    ) -> None:
         self.is_auto_playing = False
+        self.board.sync_bridges(self.game.start_state().get_bridges_open_states())
 
-        initial_bridges = self.game.start_state().bridges
-        self.board.sync_bridges(initial_bridges)
+        def reset_with_drop_in() -> None:
+            self.reset_game(
+                drop_in=True, on_complete=on_complete, update_hud=update_hud
+            )
 
-        block_is_active = (
-            self.block
-            and hasattr(self.block, 'entity')
-            and self.block.entity
-            and self.block.entity.enabled
-            and not self.game.is_goal(self.current_state)
+        if self._block_is_visible():
+            self.block.animate_exit_fly_up(
+                duration=0.35, on_complete=reset_with_drop_in
+            )
+        else:
+            reset_with_drop_in()
+
+    def _block_is_visible(self) -> bool:
+        entity = getattr(self.block, "entity", None)
+        return bool(entity and entity.enabled and not self.game.is_goal(self.state))
+
+    def _cancel_replay(self) -> None:
+        self.is_auto_playing = False
+        self._replay_id += 1
+
+    def _show_manual_stats(self) -> None:
+        self.hud.update_stats(
+            f"[LEVEL {self.current_level_num:02d} - MANUAL MODE]\nMoves: {self.manual_moves}"
         )
 
-        if block_is_active:
-            def after_fly_up():
-                self.reset_game(drop_in=True, on_complete=on_complete, update_hud=update_hud)
+    def _count_manual_move(self) -> None:
+        if not self.is_auto_playing:
+            self.manual_moves += 1
+            self._show_manual_stats()
 
-            self.block.animate_exit_fly_up(duration=0.35, on_complete=after_fly_up)
-        else:
-            self.reset_game(drop_in=True, on_complete=on_complete, update_hud=update_hud)
+    # ------------------------------------------------------------------ #
+    # Solver + replay
+    # ------------------------------------------------------------------ #
 
-    def solve_and_play(self, algo_name="astar"):
-        """Khởi chạy luồng ngầm để tính toán lời giải AI và tự động phát lại các nước đi."""
+    def solve_and_play(self, algo_name: str = "astar") -> None:
         if self.is_auto_playing:
             return
 
-        solver_fn = SOLVERS.get(algo_name)
-        if not solver_fn:
-            return
-
+        solver_type = _SOLVER_TYPES.get(algo_name, SolverType.A_STAR)
         self.hud.update_stats(f"[{algo_name.upper()}] Calculating solution...")
+        map_path = self._get_map_path(self.current_level_num)
 
-        def worker():
-            solution = solver_fn(self.game)
-
-            def on_solved():
-                if not solution or not solution.solved:
-                    self.hud.update_stats(f"[{algo_name.upper()}] No solution found!")
-                    return
-
-                def start_replay():
-                    self.hud.update_stats(
-                        f"[{algo_name.upper()} - LEVEL {self.current_level_num:02d}]\n"
-                        f"Steps: {solution.solution_len} | Time: {solution.time_sec:.4f}s\n"
-                        f"Expanded: {solution.expanded} | Peak Mem: {solution.peak_mem_bytes / 1024:.2f} KB"
-                    )
-                    self.is_auto_playing = True
-                    self.execute_action_step(solution.actions, 0, self.current_replay_id)
-
-                self.restart_with_fly_up(on_complete=start_replay, update_hud=False)
-
-            invoke(on_solved)
+        def worker() -> None:
+            metrics = self._run_solver(solver_type, map_path)
+            invoke(lambda: self._on_solver_finished(algo_name, metrics))
 
         threading.Thread(target=worker, daemon=True).start()
 
-    def execute_action_step(self, actions, index, replay_id):
-        """Phát lại chuỗi nước đi do thuật toán giải lần lượt theo nhịp hoàn tất hoạt ảnh."""
-        if not self.is_auto_playing or replay_id != self.current_replay_id:
+    @staticmethod
+    def _run_solver(
+        solver_type: SolverType, map_path: str
+    ):  # -> SolutionWithMetrics | None
+        kwargs: dict = {}
+        if solver_type == SolverType.A_STAR:
+            kwargs = {
+                "cost_calculator_type": CostCalculatorType.UNIFORM,
+                "heuristic_calculator_type": HeuristicCalculatorType.TELEPORT_AWARE,
+            }
+        try:
+            return SolverRunner(solver_type, map_path, **kwargs).solve_for_metrics()
+        except Exception as exc:  # noqa: BLE001 - surface any solver failure
+            print(f"\n[ERROR] Solver execution failed: {exc}")
+            traceback.print_exc()
+            return None
+
+    def _on_solver_finished(self, algo_name: str, metrics) -> None:
+        if not metrics or not metrics.solution:
+            self.hud.update_stats(f"[{algo_name.upper()}] No solution found!")
             return
 
+        actions, _cost = metrics.solution
+
+        def start_replay() -> None:
+            self.hud.update_stats(
+                f"[{algo_name.upper()} - LEVEL {self.current_level_num:02d}]\n"
+                f"Steps: {metrics.solution_length} | Time: {metrics.search_time_in_secs:.4f}s\n"
+                f"Expanded: {metrics.expanded_notes} | Peak Mem: {metrics.peak_memory_in_mb:.2f} MB"
+            )
+            self.is_auto_playing = True
+            self._replay_step(actions, 0, self._replay_id)
+
+        self.restart_with_fly_up(on_complete=start_replay, update_hud=False)
+
+    def _replay_step(self, actions: list[Action], index: int, replay_id: int) -> None:
+        if not self.is_auto_playing or replay_id != self._replay_id:
+            return
         if index >= len(actions):
             self.is_auto_playing = False
             return
 
-        act = actions[index]
-
-        def on_step_complete():
-            if self.is_auto_playing and replay_id == self.current_replay_id:
-                invoke(lambda: self.execute_action_step(actions, index + 1, replay_id), delay=0.08)
-
-        self.handle_action(act, on_complete=on_step_complete)
-
-    def handle_action(self, action_enum: Action, on_complete=None):
-        """Áp dụng nước đi của người chơi hoặc AI vào logic game và kích hoạt hoạt ảnh tương ứng."""
-        if self.block.is_animating or self.game.is_goal(self.current_state):
-            return
-
-        next_state = self.game.apply(self.current_state, action_enum)
-
-        if self.current_state.split:
-            if action_enum == Action.SWITCH:
-                if next_state is not None:
-                    self.current_state = next_state
-                    self.block.switch_active_cube()
-                if on_complete:
-                    invoke(on_complete, delay=0.1)
-                return
-
-            active_idx = self.current_state.active + 1
-            cur_pos = self.current_state.active_pos()
-            dr, dc = {"UP": (-1, 0), "DOWN": (1, 0), "LEFT": (0, -1), "RIGHT": (0, 1)}[action_enum.value]
-            next_r, next_c = cur_pos[0] + dr, cur_pos[1] + dc
-
-            if next_state is not None:
-                if not self.is_auto_playing:
-                    self.manual_moves += 1
-                    self.hud.update_stats(f"[LEVEL {self.current_level_num:02d} - MANUAL MODE]\nMoves: {self.manual_moves}")
-
-                def after_cube_move():
-                    self.current_state = next_state
-                    self.board.sync_bridges(self.current_state.bridges)
-
-                    r1, c1 = next_state.a
-                    r2, c2 = next_state.b
-                    solid1 = self.is_tile_solid(r1, c1, next_state.bridges)
-                    solid2 = self.is_tile_solid(r2, c2, next_state.bridges)
-
-                    if not solid1 or not solid2:
-                        def trigger_falls():
-                            if not solid1:
-                                self.block.animate_cube_fall(1, on_finish=lambda: self.reset_game(drop_in=True))
-                            if not solid2:
-                                self.block.animate_cube_fall(2, on_finish=lambda: self.reset_game(drop_in=True))
-
-                        invoke(trigger_falls, delay=0.1)
-                        return
-
-                    if not next_state.split:
-                        r1, c1 = next_state.a
-                        r2, c2 = next_state.b
-                        ori = next_state.orientation()
-                        target_r = min(r1, r2) if ori == 'LYING_V' else r1
-                        target_c = min(c1, c2) if ori == 'LYING_H' else c1
-
-                        self.block.merge_cubes(target_r, target_c, ori, on_complete=on_complete)
-                    else:
-                        if on_complete:
-                            on_complete()
-
-                self.block.animate_cube_roll(active_idx, action_enum.value, next_r, next_c, on_complete=after_cube_move)
-            else:
-                def on_cube_fall():
-                    self.block.animate_cube_fall(
-                        active_idx, 
-                        on_finish=lambda: self.reset_game(drop_in=True)
-                    )
-
-                self.block.animate_cube_roll(
-                    active_idx, 
-                    action_enum.value, 
-                    next_r, 
-                    next_c,
-                    on_complete=on_cube_fall
+        def schedule_next() -> None:
+            if self.is_auto_playing and replay_id == self._replay_id:
+                invoke(
+                    lambda: self._replay_step(actions, index + 1, replay_id),
+                    delay=_AUTOPLAY_STEP_DELAY,
                 )
 
+        self.handle_action(actions[index], on_complete=schedule_next)
+
+    # ------------------------------------------------------------------ #
+    # Action handling
+    # ------------------------------------------------------------------ #
+
+    def _find_successor(self, action: Action) -> State | None:
+        """Return the engine's next state for ``action``, or None if illegal."""
+        for move_action, next_state in self.game.successors(self.state):
+            if move_action == action:
+                return next_state
+        return None
+
+    def handle_action(
+        self, action: Action, on_complete: Callback | None = None
+    ) -> None:
+        if self.block.is_animating or self.game.is_goal(self.state):
+            return
+
+        next_state = self._find_successor(action)
+
+        if self.state.is_split():
+            self._handle_split_action(action, next_state, on_complete)
         else:
-            if action_enum == Action.SWITCH:
-                if on_complete:
-                    on_complete()
-                return
+            self._handle_whole_action(action, next_state, on_complete)
 
-            cur_ori = self.current_state.orientation()
-            if cur_ori == 'STANDING':
-                cur_r, cur_c = self.current_state.a
-            elif cur_ori == 'LYING_H':
-                cur_r = self.current_state.a[0]
-                cur_c = min(self.current_state.a[1], self.current_state.b[1])
-            else:
-                cur_r = min(self.current_state.a[0], self.current_state.b[0])
-                cur_c = self.current_state.a[1]
+    # ---- whole block ------------------------------------------------- #
 
-            next_r, next_c, next_ori = self.get_next_transform(cur_r, cur_c, cur_ori, action_enum.value)
-            pivot_pos, rot_axis = self.get_pivot_info(cur_r, cur_c, cur_ori, action_enum.value)
+    def _handle_whole_action(
+        self, action: Action, next_state: State | None, on_complete: Callback | None
+    ) -> None:
+        if action is Action.SWITCH_CONTROL:
+            if on_complete:
+                on_complete()
+            return
 
+        pose = BlockPose.from_state(self.state)
+        target = pose.after(action)
+        pivot, axis = pose.roll_pivot(action)
+
+        if next_state is None:
+            on_roll_done: Callback = lambda: self._fail_whole_block(target)  # noqa: E731
+        else:
+            self._count_manual_move()
+            on_roll_done = lambda: self._arrive_whole_block(next_state, on_complete)  # noqa: E731
+
+        self.block.animate_roll(
+            pivot,
+            axis,
+            target.row,
+            target.col,
+            target.orientation.value,
+            on_complete=on_roll_done,
+        )
+
+    def _arrive_whole_block(
+        self, next_state: State, on_complete: Callback | None
+    ) -> None:
+        self._commit_state(next_state)
+
+        if next_state.is_split():
+            first = next_state.get_first_coords()
+            second = next_state.get_second_coords()
+            self._cube_slots = {1: first, 2: second}
+            self.block.split_into_cubes(first, second)
+            # The Block starts with slot 1 active; follow the engine's choice.
+            if next_state.get_controlled_cube_coords() == second:
+                self.block.switch_active_cube()
+            if on_complete:
+                on_complete()
+            return
+
+        self._finish_or_continue(on_complete)
+
+    def _fail_whole_block(self, target: BlockPose) -> None:
+        def fall() -> None:
+            self.block.animate_fall(
+                level=self.level,
+                r=target.row,
+                c=target.col,
+                ori=target.orientation.value,
+                bridges_mask=self.state.get_bridges_open_states(),
+                on_finish=lambda: self.reset_game(drop_in=True),
+            )
+
+        breaks_tile = target.orientation is Orientation.STANDING and (
+            self.level.is_fragile_tile((target.row, target.col))
+        )
+        if breaks_tile:
+            self.board.animate_break_tile(target.row, target.col)
+            invoke(fall, delay=0.15)
+        else:
+            fall()
+
+    # ---- split cubes ------------------------------------------------- #
+
+    def _handle_split_action(
+        self, action: Action, next_state: State | None, on_complete: Callback | None
+    ) -> None:
+        if action is Action.SWITCH_CONTROL:
             if next_state is not None:
-                if not self.is_auto_playing:
-                    self.manual_moves += 1
-                    self.hud.update_stats(f"[LEVEL {self.current_level_num:02d} - MANUAL MODE]\nMoves: {self.manual_moves}")
+                self.state = next_state
+                self.block.switch_active_cube()
+            if on_complete:
+                on_complete()
+            return
 
-                if next_state.split:
-                    def after_roll_to_split():
-                        self.current_state = next_state
-                        self.board.sync_bridges(self.current_state.bridges)
-                        self.block.split_into_cubes(next_state.a, next_state.b)
-                        if on_complete:
-                            on_complete()
+        controlled = self.state.get_controlled_cube_coords()
+        if controlled is None:
+            raise RuntimeError("Split state without a controlled cube")
 
-                    self.block.animate_roll(pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=after_roll_to_split)
-                else:
-                    def after_roll():
-                        self.current_state = next_state
-                        self.board.sync_bridges(self.current_state.bridges)
+        slot = self._slot_at(controlled)
+        d_row, d_col = _DIRECTION_DELTAS[action]
+        destination = (controlled[0] + d_row, controlled[1] + d_col)
 
-                        if self.game.is_goal(self.current_state):
-                            def on_win_finished():
-                                self.is_auto_playing = False
-                                self.hud.update_stats(self.hud.stats_text.text + "\nSTAGE CLEAR!")
+        if next_state is None:
+            on_roll_done: Callback = lambda: self.block.animate_cube_fall(  # noqa: E731
+                slot, on_finish=lambda: self.reset_game(drop_in=True)
+            )
+        else:
+            self._count_manual_move()
+            on_roll_done = lambda: self._arrive_cube(  # noqa: E731
+                next_state, slot, destination, on_complete
+            )
 
-                            self.block.animate_win(on_finish=on_win_finished)
-                        else:
-                            if on_complete:
-                                on_complete()
+        self.block.animate_cube_roll(
+            slot, action.value, destination[0], destination[1], on_complete=on_roll_done
+        )
 
-                    self.block.animate_roll(pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=after_roll)
+    def _arrive_cube(
+        self,
+        next_state: State,
+        slot: int,
+        destination: Coordinate,
+        on_complete: Callback | None,
+    ) -> None:
+        self._commit_state(next_state)
 
-            else:
-                def after_roll_fall():
-                    if next_ori == 'STANDING' and (next_r, next_c) in self.level.fragile:
-                        self.board.animate_break_tile(next_r, next_c)
-                        invoke(lambda: self.block.animate_fall(
-                            level=self.level, r=next_r, c=next_c, ori=next_ori,
-                            bridges_mask=self.current_state.bridges, on_finish=lambda: self.reset_game(drop_in=True)
-                        ), delay=0.15)
-                    else:
-                        self.block.animate_fall(
-                            level=self.level, r=next_r, c=next_c, ori=next_ori,
-                            bridges_mask=self.current_state.bridges, on_finish=lambda: self.reset_game(drop_in=True)
-                        )
+        if next_state.is_split():
+            self._cube_slots[slot] = destination
+            if on_complete:
+                on_complete()
+            return
 
-                self.block.animate_roll(pivot_pos, rot_axis, next_r, next_c, next_ori, on_complete=after_roll_fall)
+        # The two cubes touched: merge them back into one block.
+        self._cube_slots.clear()
+        pose = BlockPose.from_state(next_state)
+        self.block.merge_cubes(
+            pose.row,
+            pose.col,
+            pose.orientation.value,
+            on_complete=lambda: self._finish_or_continue(on_complete),
+        )
 
-    @staticmethod
-    def get_next_transform(r, c, ori, action):
-        """Tính toán vị trí, hướng đặt tiếp theo của khối gạch sau khi thực hiện hành động."""
-        if ori == 'STANDING':
-            mapping = {
-                'RIGHT': (r, c + 1, 'LYING_H'),
-                'LEFT':  (r, c - 2, 'LYING_H'),
-                'UP':    (r - 2, c, 'LYING_V'),
-                'DOWN':  (r + 1, c, 'LYING_V'),
-            }
-        elif ori == 'LYING_H':
-            mapping = {
-                'RIGHT': (r, c + 2, 'STANDING'),
-                'LEFT':  (r, c - 1, 'STANDING'),
-                'UP':    (r - 1, c, 'LYING_H'),
-                'DOWN':  (r + 1, c, 'LYING_H'),
-            }
-        elif ori == 'LYING_V':
-            mapping = {
-                'RIGHT': (r, c + 1, 'LYING_V'),
-                'LEFT':  (r, c - 1, 'LYING_V'),
-                'UP':    (r - 1, c, 'STANDING'),
-                'DOWN':  (r + 2, c, 'STANDING'),
-            }
-        return mapping[action]
+    def _slot_at(self, coords: Coordinate) -> int:
+        """Which cube sprite is standing on ``coords``."""
+        for slot, position in self._cube_slots.items():
+            if position == coords:
+                return slot
+        raise RuntimeError(
+            f"No cube sprite tracked at {coords}; slots={self._cube_slots}"
+        )
 
-    @staticmethod
-    def get_pivot_info(r, c, ori, action):
-        """Tính toán tâm xoay (pivot) và trục xoay hình học cho khối gạch khi di chuyển."""
-        if ori == 'STANDING':
-            mapping = {
-                'RIGHT': ((c + 0.5, 0, -r), (0, 0, 90)),
-                'LEFT':  ((c - 0.5, 0, -r), (0, 0, -90)),
-                'UP':    ((c, 0, -r + 0.5), (90, 0, 0)),
-                'DOWN':  ((c, 0, -r - 0.5), (-90, 0, 0)),
-            }
-        elif ori == 'LYING_H':
-            mapping = {
-                'RIGHT': ((c + 1.5, 0, -r), (0, 0, 90)),
-                'LEFT':  ((c - 0.5, 0, -r), (0, 0, -90)),
-                'UP':    ((c + 0.5, 0, -r + 0.5), (90, 0, 0)),
-                'DOWN':  ((c + 0.5, 0, -r - 0.5), (-90, 0, 0)),
-            }
-        elif ori == 'LYING_V':
-            mapping = {
-                'RIGHT': ((c + 0.5, 0, -(r + 0.5)), (0, 0, 90)),
-                'LEFT':  ((c - 0.5, 0, -(r + 0.5)), (0, 0, -90)),
-                'UP':    ((c, 0, -r + 0.5), (90, 0, 0)),
-                'DOWN':  ((c, 0, -(r + 1.5)), (-90, 0, 0)),
-            }
-        return mapping[action]
+    # ---- shared ------------------------------------------------------ #
+
+    def _commit_state(self, new_state: State) -> None:
+        self.state = new_state
+        self.board.sync_bridges(new_state.get_bridges_open_states())
+
+    def _finish_or_continue(self, on_complete: Callback | None) -> None:
+        if self.game.is_goal(self.state):
+            self.block.animate_win(on_finish=self._on_win_finished)
+        elif on_complete:
+            on_complete()
+
+    def _on_win_finished(self) -> None:
+        self.is_auto_playing = False
+        self.hud.update_stats(self.hud.stats_text.text + "\nSTAGE CLEAR!")

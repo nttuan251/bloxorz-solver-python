@@ -65,7 +65,6 @@ class Solver(ABC):
 
         while current_state != start_state:
             action, previous_state, cost = self.parent_map[current_state]
-
             path.insert(0, action)
             total_cost += cost
 

@@ -36,5 +36,4 @@ class BloxorzGame:
 
             if move_result is not None:
                 successors.append((action, move_result))
-
         return successors

@@ -1,9 +1,9 @@
 import math
 
-from game.core.coordinate import Coordinate
-from game.core.level import Level
-from game.core.state import State
-from solver_algorithms.heuristic.heuristic_calculator import HeuristicCalculator
+from src.game.core.coordinate import Coordinate
+from src.game.core.level import Level
+from src.game.core.state import State
+from src.solver_algorithms.heuristic.heuristic_calculator import HeuristicCalculator
 
 
 class TeleportAwareHeuristicCalculator(HeuristicCalculator):
