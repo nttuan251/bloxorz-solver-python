@@ -33,6 +33,11 @@ class BFSSolver(Solver):
         self._update_frontier_with_state_difference(current_state, next_state)
         self._update_parent_map_with_move(current_state, next_move)
 
+    def _reset_internal_states(self) -> None:
+        self.visited = set()
+        self.frontier = Queue()
+        self.parent_map = {}
+
     def _calculate_priority(self, current_state: State, next_state: State) -> float:
         return self._calculate_cost(
             current_state, next_state

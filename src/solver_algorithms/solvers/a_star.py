@@ -53,6 +53,12 @@ class AStarSolver(Solver):
         self._update_parent_map_with_move(current_state, next_move)
         self.min_costs[next_state] = total_cost_to_next_state
 
+    def _reset_internal_states(self) -> None:
+        self.visited = set()
+        self.frontier = PQueue()
+        self.parent_map = {}
+        self.min_costs = {self.engine.start_state(): 0}
+
     def _calculate_priority(self, current_state: State, next_state: State) -> float:
         return (
             self._calculate_cost(current_state, next_state)
