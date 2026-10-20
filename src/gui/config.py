@@ -5,7 +5,6 @@ from src.game.core.tile import TileType
 
 TILE_SCALE = Vec3(0.95, 0.2, 0.95)
 
-# Map the new TileType enum to the exact visual properties of the old GUI
 TILE_CONFIGS = {
     TileType.START: {
         "color": color.lime,

@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import random
-from typing import TYPE_CHECKING, Callable, Iterator
+from collections.abc import Callable, Iterator
+from typing import TYPE_CHECKING
 
 from ursina import Entity, Vec3, color, curve, destroy, invoke
 from ursina.color import rgb
@@ -10,19 +11,16 @@ from src.game.core.tile import TileType
 from src.gui import config
 
 if TYPE_CHECKING:
-    from src.game.core.level import Level  # chỉnh lại đường dẫn nếu khác
+    from src.game.core.level import Level
 
 Coordinate = tuple[int, int]
 
-# --------------------------------------------------------------------------- #
-# Hằng số
-# --------------------------------------------------------------------------- #
 SWITCH_TILE_TYPES = frozenset(
     {TileType.SOFT_SWITCH, TileType.HEAVY_SWITCH, TileType.SPLIT_SWITCH}
 )
 
-SPAWN_DEPTH = 6.0  # độ sâu ô sàn "mọc" lên từ đó khi xuất hiện
-BRIDGE_HIDDEN_DEPTH = 1.5  # độ sâu cầu hạ xuống khi đóng
+SPAWN_DEPTH = 6.0
+BRIDGE_HIDDEN_DEPTH = 1.5
 SWITCH_BASE_Y = -0.1
 FALL_DISTANCE = 12.0
 FALL_DURATION = 0.45
@@ -42,7 +40,6 @@ BRIDGE_COLOR_BY_SWITCH: dict[TileType, color.Color] = {
 
 
 def _world_pos(coord: Coordinate, y: float) -> Vec3:
-    """Chuyển toạ độ lưới (hàng, cột) sang toạ độ thế giới 3D."""
     row, col = coord
     return Vec3(col, y, -row)
 
@@ -52,8 +49,6 @@ def _transparent(col: color.Color) -> color.Color:
 
 
 class Board:
-    """Quản lý khởi tạo, hiển thị và hiệu ứng của bàn chơi (ô sàn, cầu, đế công tắc)."""
-
     def __init__(
         self, level: Level, animate_entrance: bool = True, start_delay: float = 0.6
     ) -> None:
@@ -73,11 +68,7 @@ class Board:
         self._bridge_colors = self._compute_bridge_colors()
         self._build_board(animate_entrance)
 
-    # ------------------------------------------------------------------ #
-    # Helpers
-    # ------------------------------------------------------------------ #
     def _compute_bridge_colors(self) -> dict[Coordinate, color.Color]:
-        """Mỗi cầu lấy màu của công tắc đầu tiên điều khiển nó."""
         level_map = self.level.get_map()
         colors: dict[Coordinate, color.Color] = {}
         for coord, tile_type in level_map.items():
@@ -109,7 +100,6 @@ class Board:
         delay: float,
         duration: float,
     ) -> None:
-        """Hiệu ứng mọc lên: dịch chuyển tới vị trí đích và hiện dần màu."""
         entity.animate_position(
             position, duration=duration, delay=delay, curve=curve.out_back
         )
@@ -117,9 +107,6 @@ class Board:
             target_color, duration=duration, delay=delay, curve=curve.out_back
         )
 
-    # ------------------------------------------------------------------ #
-    # Dựng bàn chơi
-    # ------------------------------------------------------------------ #
     def _build_board(self, animate_entrance: bool) -> None:
         for coord, tile_type in self.level.get_map().items():
             if tile_type in SWITCH_TILE_TYPES:
@@ -140,7 +127,7 @@ class Board:
         is_bridge = tile_type == TileType.BRIDGE
         target_color = self._bridge_color(coord) if is_bridge else cfg["color"]
         target_pos = _world_pos(coord, cfg["y"])
-        rises = animate and not is_bridge  # cầu được hiện qua sync_bridges
+        rises = animate and not is_bridge
 
         entity = Entity(
             model=cfg["model"],
@@ -177,13 +164,9 @@ class Board:
             self._rise(base, target_pos, base_color, self._entrance_delay(coord), 0.6)
         return base
 
-    # ------------------------------------------------------------------ #
-    # Cầu
-    # ------------------------------------------------------------------ #
     def sync_bridges(
         self, bridges_mask: dict[Coordinate, bool], animate_entrance: bool = False
     ) -> None:
-        """Cập nhật ẩn/hiện và hiệu ứng nâng/hạ của các đoạn cầu theo trạng thái công tắc."""
         for coord, is_open in bridges_mask.items():
             entity = self.bridge_entities.get(coord)
             if entity is None:
@@ -223,11 +206,7 @@ class Board:
         entity.animate_position(hidden_pos, duration=0.25, curve=curve.in_quad)
         invoke(setattr, entity, "enabled", False, delay=0.26)
 
-    # ------------------------------------------------------------------ #
-    # Ô sàn vỡ / khôi phục
-    # ------------------------------------------------------------------ #
     def animate_break_tile(self, r: int, c: int) -> None:
-        """Ô sàn vỡ thành nhiều mảnh văng ra khi bị khối gạch giẫm lên."""
         tile = self.tiles.pop((r, c), None)
         if tile is None:
             return
@@ -259,16 +238,11 @@ class Board:
         invoke(lambda: [destroy(d) for d in debris_list], delay=0.55)
 
     def reset(self, animate_entrance: bool = False) -> None:
-        """Khôi phục các ô sàn đã vỡ về trạng thái ban đầu."""
         for coord, tile_type in self.level.get_map().items():
             if tile_type != TileType.BRIDGE and coord not in self.tiles:
                 self.tiles[coord] = self._spawn_tile(coord, tile_type, animate_entrance)
 
-    # ------------------------------------------------------------------ #
-    # Hiệu ứng vào / ra màn chơi
-    # ------------------------------------------------------------------ #
     def get_entrance_duration(self) -> float:
-        """Tổng thời gian hoàn tất hiệu ứng mọc sàn khi bắt đầu level."""
         max_diagonal = max((r + c for r, c in self.level.get_map()), default=0)
         return self.start_delay + max_diagonal * self.step_delay + self.tile_duration
 
@@ -277,7 +251,6 @@ class Board:
         pause_duration: float = 0.35,
         on_complete: Callable[[], None] | None = None,
     ) -> float:
-        """Toàn bộ ô sàn, cầu và đế công tắc rơi xuống vực khi chuyển màn."""
         max_delay = 0.0
         for (r, c), entity in self._iter_visible_entities():
             delay = (r + c) * FALL_STEP_DELAY
@@ -309,7 +282,6 @@ class Board:
             yield (round(-base.z), round(base.x)), base
 
     def destroy_board(self) -> None:
-        """Hủy mọi entity 3D của bàn chơi để giải phóng tài nguyên."""
         for entity in (
             *self.tiles.values(),
             *self.bridge_entities.values(),
