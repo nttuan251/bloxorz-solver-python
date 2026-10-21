@@ -18,7 +18,8 @@ Ghi mọi thứ không do nhóm tự làm, để đưa vào References.
 
 | Thành phần trong repo | Lấy từ đâu (link) | Giấy phép | Người thêm |
 |---|---|---|---|
-| `maps/level01.txt` … `level09.txt` | *(cần hỏi người commit đầu tiên)* | | |
+| 33 màn `maps/level_01.json` … `level_33.json` (gồm cả 9 màn ban đầu) | Repo GitHub <https://github.com/sethbfey/Bloxorz-DDQN> (Tuan tìm, Huy Hoang viết code chuyển định dạng, Huy chuyển sang JSON; theo Discord 16/10) | *(cần kiểm tra license của repo)* | Tuan, Huy Hoang, Huy |
+| `maps/level01.txt` … `level09.txt` | *(cần hỏi người commit đầu tiên; Tuan nói 9 màn này nằm trong 33 màn ở trên)* | | |
 | Code GUI ban đầu `src/gui/` | *(cần hỏi người commit đầu tiên)* | | |
 | `assets/Playstation_*.png` | *(cần hỏi người thêm)* | | |
 | | | | |
