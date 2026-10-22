@@ -6,9 +6,6 @@ from src.solver_algorithms.heuristic.heuristic_calculator import HeuristicCalcul
 from src.solver_algorithms.heuristic.grid_distance_heuristic_calculator import (
     GridDistanceHeuristicCalculator,
 )
-from src.solver_algorithms.heuristic.manhattan_heuristic_calculator import (
-    ManhattanHeuristicCalculator,
-)
 from src.solver_algorithms.heuristic.relaxed_block_heuristic_calculator import (
     RelaxedBlockHeuristicCalculator,
 )
@@ -23,7 +20,6 @@ from src.solver_algorithms.heuristic.trivial_heuristic_calculator import (
 class HeuristicCalculatorFactory:
     _registry: ClassVar[dict[HeuristicCalculatorType, type[HeuristicCalculator]]] = {
         HeuristicCalculatorType.TRIVIAL: TrivialHeuristicCalculator,
-        HeuristicCalculatorType.MANHATTAN: ManhattanHeuristicCalculator,
         HeuristicCalculatorType.TELEPORT_AWARE: TeleportAwareHeuristicCalculator,
         HeuristicCalculatorType.GRID_DISTANCE: GridDistanceHeuristicCalculator,
         HeuristicCalculatorType.RELAXED_BLOCK: RelaxedBlockHeuristicCalculator,
