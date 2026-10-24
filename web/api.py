@@ -157,6 +157,10 @@ def step(level_id: str, state_data: Any, action_name: Any) -> dict[str, Any]:
     action = _action(action_name)
     if action == Action.SWITCH_CONTROL and not state.is_split():
         raise ApiError("SWITCH_CONTROL is only allowed while the block is split")
+    # a state from another level (e.g. a stale request after switching levels) has other bridges
+    expected = {(r, c) for r, c, _ in level_payload(level_id)["state"]["bridges"]}
+    if {(r, c) for r, c, _ in state_data["bridges"]} != expected:
+        raise ApiError(f"This state does not belong to {level_id}")
 
     # `moved` is the pose right after rolling, before switches, merges and teleports.
     moved = StateMover.act(state, action)
@@ -235,6 +239,7 @@ def solve(level_id: str, solver_name: Any, cost: Any = None, heuristic: Any = No
             heat[visited.get_second_coords()] += 1
 
     return {
+        "level": level_id,
         "solver": solver_name,
         "cost": cost_type.value if cost_type else None,
         "heuristic": heuristic_type.value if uses_heuristic and heuristic_type else None,
