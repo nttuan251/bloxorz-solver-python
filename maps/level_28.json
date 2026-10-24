@@ -1,28 +1,45 @@
 {
-	"map": [
-		"-----------------",
-		"--oobboo---------",
-		"--oo--ooo--------",
-		"-ffS--oooo-------",
-		"-ff-----ooo------",
-		"-ff------ooo-----",
-		"-fooo-----oop----",
-		"--oTo------oooob-",
-		"--oooooo---osooo-",
-		"---o--oo---ooo---",
-		"---o--ooobboob---",
-		"-----------------"
-	],
-	"bridges": [
-		{"position": [1, 4], "initial_state": true},
-		{"position": [1, 5], "initial_state": true},
-		{"position": [10, 9], "initial_state": true},
-		{"position": [10, 10], "initial_state": true},
-		{"position": [7, 15], "initial_state": true},
-		{"position": [10, 13], "initial_state": true}
-	],
-	"switches": [
-		{"position": [8, 12], "coords_and_actions": [[[1, 4], "PERMANENT_CLOSE"], [[1, 5], "PERMANENT_CLOSE"], [[10, 9], "PERMANENT_CLOSE"], [[10, 10], "PERMANENT_CLOSE"]]},
-		{"position": [6, 12], "coords_and_actions": [[[7, 15], "SPLIT"], [[10, 13], "SPLIT"]]}
-	]
+  "map": [
+    "----------------",
+    "------oooo----p-",
+    "------oosooo--o-",
+    "-----ooooooo--o-",
+    "-oobboooo--oobo-",
+    "-ooob--o---oo---",
+    "-ooo---o---S----",
+    "--o----ooo------",
+    "--h----oTob-----",
+    "-------ooo------",
+    "----------------"
+  ],
+  "bridges": [
+    { "position": [4, 3], "initial_state": true },
+    { "position": [4, 4], "initial_state": true },
+    { "position": [4, 13], "initial_state": true },
+    { "position": [5, 4], "initial_state": false },
+    { "position": [8, 10], "initial_state": false }
+  ],
+  "switches": [
+    {
+      "position": [2, 8],
+      "coords_and_actions": [
+        [[4, 3], "PERMANENT_CLOSE"],
+        [[4, 4], "PERMANENT_CLOSE"]
+      ]
+    },
+    {
+      "position": [8, 2],
+      "coords_and_actions": [
+        [[5, 4], "PERMANENT_OPEN"],
+        [[8, 10], "PERMANENT_OPEN"]
+      ]
+    },
+    {
+      "position": [1, 14],
+      "coords_and_actions": [
+        [[4, 13], "SPLIT"],
+        [[6, 11], "SPLIT"]
+      ]
+    }
+  ]
 }

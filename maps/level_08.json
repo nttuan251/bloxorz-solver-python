@@ -1,19 +1,20 @@
 {
 	"map": [
 		"-----------------",
-		"----------ooo----",
-		"----------ooo----",
-		"----------ooo----",
-		"-oooooo---oooooo-",
-		"-oSoopo---ooooTo-",
-		"-oooooo---oooooo-",
-		"----------ooo----",
-		"----------ooo----",
-		"----------ooo----",
+		"---------oooo----",
+		"---------oooo----",
+		"-ooo-----o--oooo-",
+		"-oSooooooo---oTo-",
+		"-ooo----ooh--ooo-",
+		"-ooo----ooo--ooo-",
+		"--oob---o--------",
+		"---oooooo--------",
 		"-----------------"
 	],
-	"bridges": [],
+	"bridges": [
+		{"position": [7, 4], "initial_state": false}
+	],
 	"switches": [
-		{"position": [5, 5], "coords_and_actions": [[[2, 11], "SPLIT"], [[8, 11], "SPLIT"]]}
+		{"position": [5, 10], "coords_and_actions": [[[7, 4], "TOGGLE"]]}
 	]
 }

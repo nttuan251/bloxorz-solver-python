@@ -1,45 +1,32 @@
 {
-  "map": [
-    "----------------",
-    "------oooo----p-",
-    "------oosooo--o-",
-    "-----ooooooo--o-",
-    "-oobboooo--oobo-",
-    "-ooob--o---oo---",
-    "-ooo---o---S----",
-    "--o----ooo------",
-    "--h----oTob-----",
-    "-------ooo------",
-    "----------------"
-  ],
-  "bridges": [
-    { "position": [4, 3], "initial_state": true },
-    { "position": [4, 4], "initial_state": true },
-    { "position": [4, 13], "initial_state": true },
-    { "position": [5, 4], "initial_state": false },
-    { "position": [8, 10], "initial_state": false }
-  ],
-  "switches": [
-    {
-      "position": [2, 8],
-      "coords_and_actions": [
-        [[4, 3], "PERMANENT_CLOSE"],
-        [[4, 4], "PERMANENT_CLOSE"]
-      ]
-    },
-    {
-      "position": [8, 2],
-      "coords_and_actions": [
-        [[5, 4], "PERMANENT_OPEN"],
-        [[8, 10], "PERMANENT_OPEN"]
-      ]
-    },
-    {
-      "position": [1, 14],
-      "coords_and_actions": [
-        [[4, 13], "SPLIT"],
-        [[6, 11], "SPLIT"]
-      ]
-    }
-  ]
+	"map": [
+		"-----------------",
+		"-------------ooo-",
+		"---ooobbooobbooo-",
+		"---ooo--sSo--ooo-",
+		"---ooo--ooo------",
+		"---oso--pos------",
+		"---ooo--ooo------",
+		"-oooo---ooobbsoo-",
+		"-os----------ooo-",
+		"-------------oTo-",
+		"-------------ooo-",
+		"-----------------"
+	],
+	"bridges": [
+		{"position": [2, 6], "initial_state": true},
+		{"position": [2, 7], "initial_state": true},
+		{"position": [2, 11], "initial_state": false},
+		{"position": [2, 12], "initial_state": false},
+		{"position": [7, 11], "initial_state": false},
+		{"position": [7, 12], "initial_state": false}
+	],
+	"switches": [
+		{"position": [3, 8], "coords_and_actions": [[[2, 6], "PERMANENT_CLOSE"], [[2, 7], "PERMANENT_CLOSE"]]},
+		{"position": [5, 4], "coords_and_actions": [[[2, 6], "PERMANENT_CLOSE"], [[2, 7], "PERMANENT_CLOSE"]]},
+		{"position": [5, 10], "coords_and_actions": [[[2, 6], "PERMANENT_CLOSE"], [[2, 7], "PERMANENT_CLOSE"]]},
+		{"position": [7, 13], "coords_and_actions": [[[7, 11], "TOGGLE"], [[7, 12], "TOGGLE"]]},
+		{"position": [8, 2], "coords_and_actions": [[[2, 11], "TOGGLE"], [[2, 12], "TOGGLE"]]},
+		{"position": [5, 8], "coords_and_actions": [[[2, 14], "SPLIT"], [[8, 14], "SPLIT"]]}
+	]
 }

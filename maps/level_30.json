@@ -1,28 +1,25 @@
 {
 	"map": [
 		"-----------------",
-		"----oooooffoooo--",
-		"----oToo-----fo--",
-		"----ooo------foh-",
-		"--------foobbooo-",
-		"---S----ff-----o-",
-		"--hof---ff-----o-",
-		"-ffff---oob--boo-",
-		"-fffofoffof--hob-",
-		"-offfffffffffo---",
-		"--fofff--ffffo---",
+		"-ooo----oooooooo-",
+		"-oSooooooooo--oo-",
+		"-ooo----oo----oo-",
+		"-------------oho-",
+		"-------------oo--",
+		"-ooo--ffffo--ss--",
+		"-oTofffffff--ooo-",
+		"-ooofffffffffooo-",
+		"------fffffffooo-",
+		"-------boob------",
 		"-----------------"
 	],
 	"bridges": [
-		{"position": [4, 11], "initial_state": true},
-		{"position": [4, 12], "initial_state": true},
-		{"position": [7, 10], "initial_state": false},
-		{"position": [7, 13], "initial_state": false},
-		{"position": [8, 15], "initial_state": false}
+		{"position": [10, 7], "initial_state": true},
+		{"position": [10, 10], "initial_state": true}
 	],
 	"switches": [
-		{"position": [3, 15], "coords_and_actions": [[[4, 11], "PERMANENT_CLOSE"], [[4, 12], "PERMANENT_CLOSE"], [[7, 10], "PERMANENT_OPEN"], [[7, 13], "PERMANENT_OPEN"]]},
-		{"position": [6, 2], "coords_and_actions": [[[4, 11], "PERMANENT_OPEN"], [[4, 12], "PERMANENT_OPEN"]]},
-		{"position": [8, 13], "coords_and_actions": [[[8, 15], "TOGGLE"]]}
+		{"position": [4, 14], "coords_and_actions": [[[10, 7], "PERMANENT_CLOSE"], [[10, 10], "PERMANENT_CLOSE"]]},
+		{"position": [6, 13], "coords_and_actions": [[[10, 7], "PERMANENT_CLOSE"]]},
+		{"position": [6, 14], "coords_and_actions": [[[10, 10], "PERMANENT_CLOSE"]]}
 	]
 }

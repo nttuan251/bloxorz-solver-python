@@ -1,32 +1,29 @@
 {
 	"map": [
-		"-----------------",
-		"--ooo--------ooo-",
-		"--oho--------oso-",
-		"--ooo---ooobbooo-",
-		"-booob--oTo--oos-",
-		"-o---o--ooo----o-",
-		"-s---o--fff----o-",
-		"-obbooofffffoooo-",
-		"----oSofffffopo--",
-		"----ooofffffooo--",
-		"----ooooob-------",
-		"-----------------"
+		"----------------",
+		"-ooo-----oooooo-",
+		"-oTobbobboSoopo-",
+		"-ooo-----oooob--",
+		"----------ooob--",
+		"------------oo--",
+		"-------------o--",
+		"-------------o--",
+		"------------oo--",
+		"-----ooooo--oo--",
+		"-----os--oooho--",
+		"----------------"
 	],
 	"bridges": [
-		{"position": [3, 11], "initial_state": true},
-		{"position": [3, 12], "initial_state": true},
-		{"position": [4, 1], "initial_state": false},
-		{"position": [4, 5], "initial_state": false},
-		{"position": [7, 2], "initial_state": false},
-		{"position": [7, 3], "initial_state": false},
-		{"position": [10, 9], "initial_state": false}
+		{"position": [2, 4], "initial_state": false},
+		{"position": [2, 5], "initial_state": false},
+		{"position": [2, 7], "initial_state": false},
+		{"position": [2, 8], "initial_state": false},
+		{"position": [3, 13], "initial_state": false},
+		{"position": [4, 13], "initial_state": false}
 	],
 	"switches": [
-		{"position": [2, 3], "coords_and_actions": [[[4, 5], "PERMANENT_OPEN"]]},
-		{"position": [2, 14], "coords_and_actions": [[[7, 2], "PERMANENT_OPEN"], [[7, 3], "PERMANENT_OPEN"], [[10, 9], "TOGGLE"]]},
-		{"position": [4, 15], "coords_and_actions": [[[3, 11], "PERMANENT_CLOSE"], [[3, 12], "PERMANENT_CLOSE"]]},
-		{"position": [6, 1], "coords_and_actions": [[[7, 2], "PERMANENT_CLOSE"], [[7, 3], "PERMANENT_CLOSE"], [[4, 1], "PERMANENT_OPEN"]]},
-		{"position": [8, 13], "coords_and_actions": [[[8, 13], "SPLIT"], [[3, 3], "SPLIT"]]}
+		{"position": [10, 6], "coords_and_actions": [[[2, 4], "TOGGLE"], [[2, 5], "TOGGLE"]]},
+		{"position": [10, 12], "coords_and_actions": [[[2, 7], "TOGGLE"], [[2, 8], "TOGGLE"], [[3, 13], "TOGGLE"], [[4, 13], "TOGGLE"]]},
+		{"position": [2, 13], "coords_and_actions": [[[2, 13], "SPLIT"], [[2, 10], "SPLIT"]]}
 	]
 }

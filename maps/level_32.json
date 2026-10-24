@@ -1,30 +1,28 @@
 {
 	"map": [
-		"----------------",
-		"-------------oh-",
-		"---oobboo---ooo-",
-		"--ooobboo--ohoo-",
-		"--oTo---ooooo---",
-		"--ooo----ooo----",
-		"----------oo----",
-		"-----ooo--oS----",
-		"-oobboho--oo----",
-		"-oobbooooooo----",
-		"----------------"
+		"-----------------",
+		"----oooooffoooo--",
+		"----oToo-----fo--",
+		"----ooo------foh-",
+		"--------foobbooo-",
+		"---S----ff-----o-",
+		"--hof---ff-----o-",
+		"-ffff---oob--boo-",
+		"-fffofoffof--hob-",
+		"-offfffffffffo---",
+		"--fofff--ffffo---",
+		"-----------------"
 	],
 	"bridges": [
-		{"position": [2, 5], "initial_state": true},
-		{"position": [2, 6], "initial_state": true},
-		{"position": [3, 5], "initial_state": false},
-		{"position": [3, 6], "initial_state": false},
-		{"position": [8, 3], "initial_state": false},
-		{"position": [8, 4], "initial_state": false},
-		{"position": [9, 3], "initial_state": false},
-		{"position": [9, 4], "initial_state": false}
+		{"position": [4, 11], "initial_state": true},
+		{"position": [4, 12], "initial_state": true},
+		{"position": [7, 10], "initial_state": false},
+		{"position": [7, 13], "initial_state": false},
+		{"position": [8, 15], "initial_state": false}
 	],
 	"switches": [
-		{"position": [1, 14], "coords_and_actions": [[[2, 5], "TOGGLE"], [[2, 6], "TOGGLE"], [[8, 3], "TOGGLE"], [[8, 4], "TOGGLE"]]},
-		{"position": [3, 12], "coords_and_actions": [[[9, 3], "TOGGLE"], [[9, 4], "TOGGLE"]]},
-		{"position": [8, 6], "coords_and_actions": [[[3, 5], "TOGGLE"], [[3, 6], "TOGGLE"]]}
+		{"position": [3, 15], "coords_and_actions": [[[4, 11], "PERMANENT_CLOSE"], [[4, 12], "PERMANENT_CLOSE"], [[7, 10], "PERMANENT_OPEN"], [[7, 13], "PERMANENT_OPEN"]]},
+		{"position": [6, 2], "coords_and_actions": [[[4, 11], "PERMANENT_OPEN"], [[4, 12], "PERMANENT_OPEN"]]},
+		{"position": [8, 13], "coords_and_actions": [[[8, 15], "TOGGLE"]]}
 	]
 }
