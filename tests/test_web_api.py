@@ -43,6 +43,11 @@ class StepTests(unittest.TestCase):
         with self.assertRaises(api.ApiError):
             api.step("level_01", start, "SWITCH_CONTROL")
 
+    def test_state_from_another_level_is_rejected(self):
+        other = api.level_payload("level_02")["state"]  # has bridges level_01 does not have
+        with self.assertRaises(api.ApiError):
+            api.step("level_01", other, "DOWN")
+
     def test_unknown_action_is_rejected(self):
         start = api.level_payload("level_01")["state"]
         with self.assertRaises(api.ApiError):

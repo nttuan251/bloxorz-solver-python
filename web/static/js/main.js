@@ -41,6 +41,7 @@ class Game {
     this.compareRows = [];
     this.par = new Map();
     this.solver = store.get("solver", "A*");
+    this.loadToken = 0;
     this.done = new Set(store.get("done", []));
   }
 
@@ -69,8 +70,12 @@ class Game {
   async load(id, { animateOut = true } = {}) {
     this.stopPlayback();
     this.busy = true;
+    // a newer load (or restart) may start while this one waits; the older one then just stops
+    const token = ++this.loadToken;
     const data = await api.level(id);
+    if (token !== this.loadToken) return;
     if (this.board && animateOut) await Promise.all([this.board.exit(), this.block?.exit()]);
+    if (token !== this.loadToken) return;
     finishAll();
     this.block?.dispose();
     this.board?.dispose();
@@ -95,14 +100,19 @@ class Game {
     this._showPar();
 
     await this.board.enter();
+    if (token !== this.loadToken) return;
     await this.block.dropIn(data.state);
+    if (token !== this.loadToken) return;
     this.busy = false;
     this._flushQueue();
   }
 
   async restart({ quiet = false } = {}) {
+    if (!this.board) return;
     this.stopPlayback();
     this.won = false;
+    const token = ++this.loadToken;
+    this.busy = true;
     finishAll();
     this.board.clearSearch();
     this.board.restoreTiles();
@@ -112,6 +122,7 @@ class Game {
     this._setMoves(0);
     this.busy = true;
     await this.block.dropIn(this.state);
+    if (token !== this.loadToken) return;
     this.busy = false;
     if (!quiet) this._toast("Level restarted");
   }
@@ -135,7 +146,7 @@ class Game {
     this.block.dispose();
     this.board.dispose();
     this.board = new Board(this.stage, this.level);
-    await this.board.setBridges(this.state.bridges, false);
+    this.board.setBridges(this.state.bridges, false); // no animation: applied synchronously
     this.block = new Block(this.stage, this.board);
     this.block.set(this.state);
     if (this.won) this.block.whole.visible = false; // already sank into the goal
@@ -182,25 +193,31 @@ class Game {
     if (!this.state) return;
     if (action === "SWITCH_CONTROL" && !this.state.split) return;
     this.busy = true;
+    const token = this.loadToken; // a level load or restart started meanwhile makes this move stale
     try {
       const prev = this.state;
       const res = await api.step(this.level.id, prev, action);
+      if (token !== this.loadToken) return;
       if (!res.ok) {
-        await this._fail(prev, action, res);
+        await this._fail(prev, action, res, token);
         return;
       }
-      await this._applyMove(prev, action, res);
+      if (!(await this._applyMove(prev, action, res, token))) return;
       if (res.won) await this._win();
     } catch (err) {
       this._toast(err.message, true);
     } finally {
-      this.busy = false;
-      this._flushQueue();
+      if (token === this.loadToken) {
+        this.busy = false;
+        this._flushQueue();
+      }
     }
   }
 
-  async _applyMove(prev, action, res) {
+  /** Animate one legal move and commit it. Returns false if a load or restart cut it short. */
+  async _applyMove(prev, action, res, token) {
     if (action !== "SWITCH_CONTROL") await this.block.roll(prev, action);
+    if (token !== this.loadToken) return false;
     const next = res.state;
     const moved = res.moved;
 
@@ -214,6 +231,7 @@ class Game {
       this.board.setBridges(next.bridges, true),
       this.block.settle(prev, moved, next),
     ]).then(([c]) => c);
+    if (token !== this.loadToken) return false;
 
     if (splitChanged) this._toast("The block split. Press Space to switch cubes.");
     else if (prev.split && !next.split) this._toast("Cubes joined back together");
@@ -225,9 +243,10 @@ class Game {
     this.state = next;
     // switching cubes counts as a move, the same way the solvers count it as a step
     this._setMoves(this.moves + 1);
+    return true;
   }
 
-  async _fail(prev, action, res) {
+  async _fail(prev, action, res, token) {
     const moved = res.moved;
     if (res.reason === "fragile") {
       this._toast("The fragile tile cracked under the block", true);
@@ -240,7 +259,7 @@ class Game {
       await this.block.fall(prev, action, res.reason);
     }
     await this._delay(250);
-    await this.restart({ quiet: true });
+    if (token === this.loadToken) await this.restart({ quiet: true });
   }
 
   /**
@@ -254,11 +273,13 @@ class Game {
     this.done.add(this.level.id);
     store.set("done", [...this.done]);
     const level = this.level;
+    const token = this.loadToken;
     this.busy = true;
     const goal = this.board.world(...level.goal);
     await this.block.sink();
     const show = fireworks(this.stage, goal, this.theme.glow);
     await this._delay(2600);
+    if (token !== this.loadToken) return; // the player already picked another level or restarted
     this.busy = false;
     if (advance && this.level === level) {
       const next = this.levels[(this.levelIndex + 1) % this.levels.length];
@@ -280,7 +301,9 @@ class Game {
     btn.disabled = true;
     btn.textContent = "Searching…";
     try {
-      const result = await api.solve(...this._solverArgs());
+      const args = this._solverArgs();
+      const result = await api.solve(...args);
+      if (args[0] !== this.level.id) return; // the player switched levels while it was searching
       this._rememberPar(result);
       this._setResult(result);
       this.play(result);
@@ -299,7 +322,9 @@ class Game {
     try {
       for (const s of this.options.solvers) {
         btn.textContent = `Running ${s.name}…`;
-        rows.push(await api.solve(...this._solverArgs(s.name)));
+        const args = this._solverArgs(s.name);
+        rows.push(await api.solve(...args));
+        if (args[0] !== this.level.id) return;
       }
       rows.forEach(r => this._rememberPar(r));
       this.compareRows = rows;
@@ -328,23 +353,26 @@ class Game {
     }
     // solvers search from the start state, so the replay starts there too
     while (this.busy) await this._delay(30);
+    if (result.level !== this.level.id) return; // a solution for a level we already left
     if (this.moves > 0 || JSON.stringify(this.state) !== JSON.stringify(this.level.state)) await this.restart({ quiet: true });
     this._applySearchLayer(result);
+    const token = this.loadToken;
 
     const run = { result, index: 0, paused: false, stopped: false };
     this.playing = run;
     setSpeed(this.playbackSpeed);
     this._syncPlayButton();
     await this._delay(600);
-    while (!run.stopped && run.index < result.actions.length) {
+    while (!run.stopped && token === this.loadToken && run.index < result.actions.length) {
       if (run.paused) { await this._delay(80); continue; }
       const action = result.actions[run.index];
       const prev = this.state;
       const next = result.states[run.index + 1];
       this.busy = true;
       const moved = action === "SWITCH_CONTROL" ? next : (await api.step(this.level.id, prev, action)).moved;
+      if (token !== this.loadToken) break;
       if (run.stopped) { this.busy = false; break; }
-      await this._applyMove(prev, action, { state: next, moved });
+      if (!(await this._applyMove(prev, action, { state: next, moved }, token))) break;
       this.busy = false;
       run.index++;
       await wait(70);
@@ -352,7 +380,7 @@ class Game {
     if (this.playing === run) this.playing = null;
     setSpeed(1);
     this._syncPlayButton();
-    if (!run.stopped && run.index === result.actions.length) await this._win({ advance: false });
+    if (!run.stopped && token === this.loadToken && run.index === result.actions.length) await this._win({ advance: false });
   }
 
   stopPlayback() {
