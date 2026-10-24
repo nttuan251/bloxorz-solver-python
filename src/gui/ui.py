@@ -276,15 +276,15 @@ class HUD:
             on_click=partial(on_solve_click, "dfs"),
         )
         self.btn_ucs = self._create_cad_button(
-            text="UCS", color_bg=color.hex("#1a3838"), scale=(0.065, 0.038),
+            text="A*", color_bg=color.hex("#1a3838"), scale=(0.065, 0.038),
             pos=(0.105, 0.455), accent_color=color.cyan,
-            on_click=partial(on_solve_click, "ucs"),
-        )
-        self.btn_astar = self._create_cad_button(
-            text="A*", color_bg=color.hex("#22381a"), scale=(0.065, 0.038),
-            pos=(0.18, 0.455), accent_color=color.lime,
             on_click=partial(on_solve_click, "astar"),
         )
+        # self.btn_astar = self._create_cad_button(
+        #     text="A*", color_bg=color.hex("#22381a"), scale=(0.065, 0.038),
+        #     pos=(0.18, 0.455), accent_color=color.lime,
+        #     on_click=partial(on_solve_click, "astar"),
+        # )
         self.btn_manual = self._create_cad_button(
             text="MANUAL", color_bg=color.hex("#381a1a"), scale=(0.14, 0.038),
             pos=(0.355, 0.455), accent_color=color.red, on_click=on_manual_click,
