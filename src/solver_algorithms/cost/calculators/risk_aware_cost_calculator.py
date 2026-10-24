@@ -1,8 +1,8 @@
 from typing import ClassVar
 
 from src.game.core.state import State
-from src.solver_algorithms.cost_calculator.cost_calculator import CostCalculator
-from src.solver_algorithms.cost_calculator.move_features import MoveFeatures
+from src.solver_algorithms.cost.cost_calculator import CostCalculator
+from src.solver_algorithms.cost.move_info_determiner import MoveInfoDeterminer
 
 
 class RiskAwareCostCalculator(CostCalculator):
@@ -20,10 +20,10 @@ class RiskAwareCostCalculator(CostCalculator):
     SWITCH_CONTROL_COST: ClassVar[float] = 1
 
     def calculate_cost(self, current_state: State, next_state: State) -> float:
-        if MoveFeatures.is_switch_control(current_state, next_state):
+        if MoveInfoDeterminer.is_switch_control(current_state, next_state):
             return self.SWITCH_CONTROL_COST
 
-        newly_landed_on_tiles = MoveFeatures.get_newly_landed_on_tiles(
+        newly_landed_on_tiles = MoveInfoDeterminer.get_newly_landed_on_tiles(
             current_state, next_state
         )
 

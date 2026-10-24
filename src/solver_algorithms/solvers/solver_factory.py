@@ -5,16 +5,6 @@ from src.game.logic.engine import BloxorzGame
 from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
 from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
 from src.solver_algorithms.core.solver_type import SolverType
-from src.solver_algorithms.cost_calculator.cost_calculator_factory import (
-    CostCalculatorFactory,
-)
-from src.solver_algorithms.heuristic.heuristic_calculator import HeuristicCalculator
-from src.solver_algorithms.heuristic.heuristic_calculator_factory import (
-    HeuristicCalculatorFactory,
-)
-from src.solver_algorithms.heuristic.trivial_heuristic_calculator import (
-    TrivialHeuristicCalculator,
-)
 from src.solver_algorithms.solvers.a_star import AStarSolver
 from src.solver_algorithms.solvers.BFS import BFSSolver
 from src.solver_algorithms.solvers.DFS import DFSSolver

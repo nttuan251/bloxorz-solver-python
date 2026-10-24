@@ -6,7 +6,7 @@ from src.game.core.coordinate import Coordinate
 from src.game.core.level import Level
 from src.game.core.state import State
 from src.game.logic.state_mover import StateMover
-from src.solver_algorithms.heuristic.grid_distance_heuristic_calculator import (
+from src.solver_algorithms.heuristic.calculators.grid_distance_heuristic_calculator import (
     GridDistanceHeuristicCalculator,
 )
 
@@ -58,7 +58,9 @@ class RelaxedBlockHeuristicCalculator(GridDistanceHeuristicCalculator):
             )
 
         counter = itertools.count()
-        queue = [(distance, next(counter), pose) for pose, distance in distances.items()]
+        queue = [
+            (distance, next(counter), pose) for pose, distance in distances.items()
+        ]
         heapq.heapify(queue)
 
         while queue:
@@ -79,8 +81,11 @@ class RelaxedBlockHeuristicCalculator(GridDistanceHeuristicCalculator):
             block = State(pose[0], pose[1], {}, False, None)
             for action in _ROLLS:
                 next_block = StateMover.act(block, action)
-                next_pose = (next_block.get_first_coords(), next_block.get_second_coords())
-                if all(self.level.has_tile(coords) for coords in next_pose):
+                next_pose = (
+                    next_block.get_first_coords(),
+                    next_block.get_second_coords(),
+                )
+                if all(self.level.is_tile(coords) for coords in next_pose):
                     predecessors.setdefault(next_pose, []).append(pose)
 
         return predecessors
@@ -91,7 +96,7 @@ class RelaxedBlockHeuristicCalculator(GridDistanceHeuristicCalculator):
         for row, col in self.level.get_map():
             poses.append(((row, col), (row, col)))
             for neighbour in ((row, col + 1), (row + 1, col)):
-                if self.level.has_tile(neighbour):
+                if self.level.is_tile(neighbour):
                     poses.append(((row, col), neighbour))
 
         return poses
