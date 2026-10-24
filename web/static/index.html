@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Bloxorz Solver</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/app.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+  <div class="sky" id="sky" aria-hidden="true">
+    <div class="blackhole"><span class="bh-back"></span><span class="bh-lens"></span><span class="bh-core"></span><span class="bh-front"></span></div>
+    <div class="sun"><span class="sun-rays"></span><span class="sun-disc"></span></div>
+  </div>
+  <canvas id="scene" aria-label="Bloxorz board"></canvas>
+
+  <!-- level title and move counter -->
+  <header class="title" aria-live="polite">
+    <h1><span class="title-word">Level</span> <span id="level-number">1</span></h1>
+    <p class="moves"><span id="moves">0</span> moves<span id="par" hidden>, shortest <span id="par-value"></span></span></p>
+  </header>
+
+  <nav class="topbar" aria-label="Game">
+    <button class="chip" id="btn-levels" title="Pick a level (N)">New game</button>
+    <button class="chip" id="btn-restart" title="Restart this level (R)">Restart</button>
+    <button class="chip icon" id="btn-help" title="How to play (H)" aria-label="How to play">?</button>
+  </nav>
+
+  <!-- solver panel -->
+  <aside class="panel" id="panel" aria-label="Solver">
+    <button class="panel-handle" id="panel-handle" aria-expanded="true" aria-controls="panel-body">
+      <span>Solver</span><span class="handle-state" id="handle-state"></span>
+    </button>
+    <div class="panel-body" id="panel-body">
+      <div class="segmented" role="radiogroup" aria-label="Algorithm" id="solver-pick"></div>
+      <p class="algo-note" id="algo-note"></p>
+
+      <div class="field" id="field-cost">
+        <label for="sel-cost">Step cost</label>
+        <select id="sel-cost"></select>
+      </div>
+      <div class="field" id="field-heuristic">
+        <label for="sel-heuristic">Heuristic</label>
+        <select id="sel-heuristic"></select>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="btn-solve">Solve and play</button>
+        <button class="ghost" id="btn-compare" title="Run BFS, DFS, UCS and A* on this level">Compare all</button>
+      </div>
+
+      <section class="result" id="result" hidden>
+        <dl class="metrics">
+          <div><dt>Steps</dt><dd id="m-steps">0</dd></div>
+          <div><dt>Path cost</dt><dd id="m-cost">0</dd></div>
+          <div><dt>Expanded</dt><dd id="m-expanded">0</dd></div>
+          <div><dt>Time</dt><dd id="m-time">0</dd></div>
+          <div><dt>Peak memory</dt><dd id="m-mem">0</dd></div>
+        </dl>
+        <div class="playback">
+          <button class="round" id="btn-play" aria-label="Pause">❚❚</button>
+          <input type="range" id="speed" min="0.5" max="4" step="0.5" value="1.5" aria-label="Playback speed">
+          <output id="speed-out" for="speed">1.5×</output>
+        </div>
+        <label class="toggle"><input type="checkbox" id="chk-heat" checked> <span>Show explored tiles</span></label>
+        <div class="heat-legend" id="heat-legend"><span>visited once</span><i></i><span>many times</span></div>
+      </section>
+
+      <section class="compare" id="compare" hidden>
+        <table>
+          <thead><tr><th>Solver</th><th>Steps</th><th>Cost</th><th>Expanded</th><th>Time</th></tr></thead>
+          <tbody id="compare-body"></tbody>
+        </table>
+        <p class="hint-small">Pick a row to replay it.</p>
+      </section>
+    </div>
+  </aside>
+
+  <p class="keys" id="keys">Arrow keys roll the block. Space switches cube. R restarts. T changes colours.</p>
+
+  <div class="dpad" id="dpad" aria-label="Move">
+    <button data-dir="up" aria-label="Roll up">▲</button>
+    <button data-dir="left" aria-label="Roll left">◀</button>
+    <button data-dir="swap" aria-label="Switch cube">⇄</button>
+    <button data-dir="right" aria-label="Roll right">▶</button>
+    <button data-dir="down" aria-label="Roll down">▼</button>
+  </div>
+
+  <div class="themes" id="themes" role="radiogroup" aria-label="Colour theme (T)">
+    <span class="themes-name" id="theme-name"></span>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- overlays -->
+  <div class="overlay" id="ov-levels" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="levels-title">
+      <header><h2 id="levels-title">Pick a level</h2><button class="close" data-close aria-label="Close">×</button></header>
+      <div class="level-grid" id="level-grid"></div>
+    </div>
+  </div>
+
+  <div class="overlay" id="ov-help" hidden>
+    <div class="sheet wide" role="dialog" aria-modal="true" aria-labelledby="help-title">
+      <header><h2 id="help-title">How to play</h2><button class="close" data-close aria-label="Close">×</button></header>
+      <p class="lead">Roll the 1×1×2 block until it stands upright in the glowing hole. Falling off the edge restarts the level.</p>
+      <ul class="legend">
+        <li><i class="sw sw-floor"></i><div><b>Floor</b>Holds the block in any position.</div></li>
+        <li><i class="sw sw-fragile"></i><div><b>Fragile tile</b>Cracks if the block stands upright on it. Lying down is fine.</div></li>
+        <li><i class="sw sw-bridge"></i><div><b>Bridge</b>Opens and closes when a switch is pressed.</div></li>
+        <li><i class="sw sw-soft"></i><div><b>Round switch</b>Any part of the block presses it.</div></li>
+        <li><i class="sw sw-heavy"></i><div><b>X switch</b>Only presses when the block stands on it.</div></li>
+        <li><i class="sw sw-split"></i><div><b>Split switch</b>Standing on it splits the block into two cubes. Space switches which cube you move. Put them side by side to join them again.</div></li>
+        <li><i class="sw sw-goal"></i><div><b>Goal</b>Stand the whole block in it to finish the level.</div></li>
+      </ul>
+      <p class="lead small">The solver panel runs BFS, DFS, UCS or A* in Python and replays the answer. Blue tiles show where the search looked: the darker the tile, the more states it expanded there.</p>
+    </div>
+  </div>
+
+  <div class="overlay soft" id="ov-win" hidden>
+    <div class="sheet win" role="dialog" aria-modal="true" aria-labelledby="win-title">
+      <h2 id="win-title">Level cleared</h2>
+      <p id="win-text"></p>
+      <div class="actions">
+        <button class="primary" id="btn-next">Next level</button>
+        <button class="ghost" id="btn-replay">Play again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="boot" id="boot"><p id="boot-text">Loading levels…</p></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
