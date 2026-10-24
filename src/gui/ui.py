@@ -19,6 +19,7 @@ INACTIVE_LEVEL_COLOR = color.hex("#222836")
 
 _E = TypeVar("_E", bound=Enum)
 
+Text.default_font = "assets/Montserrat-Medium.ttf"
 
 def _next_member(current: _E) -> _E:
     members = list(type(current))
@@ -213,111 +214,96 @@ class HUD:
         self.selected_cost = CostCalculatorType.UNIFORM
         self.selected_heuristic = HeuristicCalculatorType.TELEPORT_AWARE
 
+        # --- DYNAMIC STATS PANEL ---
+        TOP_Y = 0.474  # Mép trên của dãy nút HUD
+
+        self.stats_panel = Entity(
+            parent=camera.ui,
+            model="quad",
+            color=color.rgba(20 / 255, 24 / 255, 34 / 255, 0.88),
+            origin=(-0.5, 0.5),
+            position=(-0.86, TOP_Y, -0.01),
+            scale=(0.32, 0.09),
+        )
+        self.stats_border = Entity(
+            parent=camera.ui,
+            model="quad",
+            color=color.hex("#00adb5"),
+            origin=(-0.5, 0.5),
+            position=(-0.862, TOP_Y + 0.002, -0.009),
+            scale=(0.324, 0.094),
+        )
+        self.stats_accent = Entity(
+            parent=camera.ui,
+            model="quad",
+            color=color.hex("#00fff5"),
+            origin=(-0.5, 0.5),
+            position=(-0.86, TOP_Y, -0.015),
+            scale=(0.006, 0.09),
+        )
         self.stats_text = Text(
-            text="[MANUAL MODE] Ready",
-            position=(-0.85, 0.45),
-            scale=1.0,
-            color=color.yellow,
-            line_height=1.35,
+            text="[MANUAL] Ready",
+            parent=camera.ui,
+            position=(-0.84, TOP_Y - 0.012, -0.02),
+            origin=(-0.5, 0.5),
+            scale=0.75,
+            color=color.hex("#8BE9E2"),
+            line_height=1.2,
         )
 
         self.btn_prev = self._create_cad_button(
-            text="PREV",
-            color_bg=color.hex("#1f2430"),
-            scale=(0.07, 0.04),
-            pos=(0.20, 0.45),
-            on_click=partial(on_level_change, -1),
+            text="‹", color_bg=color.hex("#1f2430"), scale=(0.045, 0.038),
+            pos=(-0.30, 0.455), on_click=partial(on_level_change, -1),
         )
         self.btn_level_menu = self._create_cad_button(
-            text="LV 01",
-            color_bg=color.hex("#00adb5"),
-            scale=(0.09, 0.04),
-            pos=(0.29, 0.45),
-            accent_color=color.hex("#00fff5"),
+            text="LV 01", color_bg=color.hex("#00adb5"), scale=(0.09, 0.038),
+            pos=(-0.22, 0.455), accent_color=color.hex("#00fff5"),
             on_click=self.toggle_level_panel,
         )
         self.btn_next = self._create_cad_button(
-            text="NEXT",
-            color_bg=color.hex("#1f2430"),
-            scale=(0.07, 0.04),
-            pos=(0.38, 0.45),
-            on_click=partial(on_level_change, 1),
-        )
-        self.btn_restart = self._create_cad_button(
-            text="RESTART",
-            color_bg=color.hex("#38281a"),
-            scale=(0.12, 0.04),
-            pos=(0.55, 0.45),
-            accent_color=color.orange,
-            on_click=on_restart_click,
+            text="›", color_bg=color.hex("#1f2430"), scale=(0.045, 0.038),
+            pos=(-0.14, 0.455), on_click=partial(on_level_change, 1),
         )
 
         self.btn_bfs = self._create_cad_button(
-            text="BFS",
-            color_bg=color.hex("#1a2638"),
-            scale=(0.07, 0.04),
-            pos=(0.20, 0.39),
-            accent_color=color.azure,
+            text="BFS", color_bg=color.hex("#1a2638"), scale=(0.065, 0.038),
+            pos=(-0.045, 0.455), accent_color=color.azure,
             on_click=partial(on_solve_click, "bfs"),
         )
         self.btn_dfs = self._create_cad_button(
-            text="DFS",
-            color_bg=color.hex("#38281a"),
-            scale=(0.07, 0.04),
-            pos=(0.28, 0.39),
-            accent_color=color.orange,
+            text="DFS", color_bg=color.hex("#38281a"), scale=(0.065, 0.038),
+            pos=(0.03, 0.455), accent_color=color.orange,
             on_click=partial(on_solve_click, "dfs"),
         )
         self.btn_ucs = self._create_cad_button(
-            text="UCS",
-            color_bg=color.hex("#1a3838"),
-            scale=(0.07, 0.04),
-            pos=(0.36, 0.39),
-            accent_color=color.cyan,
+            text="UCS", color_bg=color.hex("#1a3838"), scale=(0.065, 0.038),
+            pos=(0.105, 0.455), accent_color=color.cyan,
             on_click=partial(on_solve_click, "ucs"),
         )
         self.btn_astar = self._create_cad_button(
-            text="A*",
-            color_bg=color.hex("#22381a"),
-            scale=(0.07, 0.04),
-            pos=(0.44, 0.39),
-            accent_color=color.lime,
+            text="A*", color_bg=color.hex("#22381a"), scale=(0.065, 0.038),
+            pos=(0.18, 0.455), accent_color=color.lime,
             on_click=partial(on_solve_click, "astar"),
         )
         self.btn_manual = self._create_cad_button(
-            text="MANUAL",
-            color_bg=color.hex("#381a1a"),
-            scale=(0.12, 0.04),
-            pos=(0.55, 0.39),
-            accent_color=color.red,
-            on_click=on_manual_click,
+            text="MANUAL", color_bg=color.hex("#381a1a"), scale=(0.14, 0.038),
+            pos=(0.355, 0.455), accent_color=color.red, on_click=on_manual_click,
         )
-
-        self.btn_cost = self._create_cad_button(
-            text=_option_label("COST", self.selected_cost),
-            color_bg=color.hex("#2a2a1a"),
-            scale=(0.32, 0.04),
-            pos=(0.325, 0.33),
-            accent_color=color.yellow,
-            on_click=self._cycle_cost,
-        )
-        self.btn_heuristic = self._create_cad_button(
-            text=_option_label("HEURISTIC", self.selected_heuristic),
-            color_bg=color.hex("#2a1a38"),
-            scale=(0.40, 0.04),
-            pos=(0.365, 0.27),
-            accent_color=color.violet,
-            on_click=self._cycle_heuristic,
+        self.btn_restart = self._create_cad_button(
+            text="RESET", color_bg=color.hex("#38281a"), scale=(0.09, 0.038),
+            pos=(0.48, 0.455), accent_color=color.orange, on_click=on_restart_click,
         )
 
         self.help_panel = HelpPanel()
         self.btn_help = self._create_cad_button(
-            text="HELP",
-            color_bg=color.hex("#1f2430"),
-            scale=(0.07, 0.04),
-            pos=(0.66, 0.45),
-            accent_color=color.hex("#00fff5"),
+            text="HELP", color_bg=color.hex("#1f2430"), scale=(0.08, 0.038),
+            pos=(0.68, 0.455), accent_color=color.hex("#00fff5"),
             on_click=self.help_panel.toggle,
+        )
+        self.btn_settings = self._create_cad_button(
+            text="SETTINGS", color_bg=color.hex("#1f2430"), scale=(0.14, 0.038),
+            pos=(0.8, 0.455), accent_color=color.hex("#00adb5"),
+            on_click=self.toggle_settings_panel,
         )
 
         bg_dark_color = color.rgba(10 / 255, 12 / 255, 16 / 255, 0.85)
@@ -373,6 +359,118 @@ class HUD:
 
         self.level_grid_buttons: list[Button] = []
         self._build_level_grid()
+        self._build_settings_panel()
+
+    def _build_settings_panel(self) -> None:
+        """Advanced solver options live in a separate modal with matching HelpPanel design."""
+        bg_dark_color = color.rgba(10 / 255, 12 / 255, 16 / 255, 0.88)
+        self.settings_modal_bg = Button(
+            parent=camera.ui,
+            model="quad",
+            color=bg_dark_color,
+            highlight_color=bg_dark_color,
+            pressed_color=bg_dark_color,
+            scale=(2, 2),
+            z=-20,
+            enabled=False,
+            on_click=self.close_settings_panel,
+        )
+        self.settings_border = Entity(
+            parent=camera.ui,
+            model="quad",
+            color=color.hex("#00adb5"),
+            scale=(0.85, 0.82),
+            z=-20.8,
+            enabled=False,
+        )
+        self.settings_frame = Entity(
+            parent=camera.ui,
+            model="quad",
+            color=color.hex("#141822"),
+            scale=(0.84, 0.81),
+            z=-21,
+            enabled=False,
+        )
+        self.settings_title = Text(
+            text="[ ADVANCED SETTINGS ]",
+            parent=self.settings_frame,
+            position=(0, 0.43, -0.01),
+            origin=(0, 0),
+            scale=1.3,
+            color=color.hex("#00fff5"),
+        )
+        self.settings_close = Button(
+            text="X",
+            parent=self.settings_frame,
+            model="quad",
+            color=color.hex("#8c2424"),
+            highlight_color=color.hex("#ff4d4d"),
+            scale=(0.04, 0.05),
+            position=(0.45, 0.43, -0.01),
+            on_click=self.close_settings_panel,
+        )
+        self.btn_cost = self._create_settings_button(
+            text=_option_label("COST", self.selected_cost),
+            pos=(0, 0.12),
+            accent=color.yellow,
+            callback=self._cycle_cost,
+        )
+        self.btn_heuristic = self._create_settings_button(
+            text=_option_label("HEURISTIC", self.selected_heuristic),
+            pos=(0, -0.08),
+            accent=color.violet,
+            callback=self._cycle_heuristic,
+        )
+        self.settings_hint = Text(
+            text="Select a button to cycle through available algorithms",
+            parent=self.settings_frame,
+            position=(0, -0.35, -0.01),
+            origin=(0, 0),
+            scale=0.85,
+            color=color.light_gray,
+        )
+
+    def _create_settings_button(
+        self,
+        text: str,
+        pos: tuple[float, float],
+        accent: Color,
+        callback: Callback,
+    ) -> Button:
+        btn = Button(
+            text=text,
+            parent=self.settings_frame,
+            model="quad",
+            color=color.hex("#222836"),
+            highlight_color=color.hex("#00adb5"),
+            pressed_color=color.hex("#18202b"),
+            text_color=color.white,
+            scale=(0.65, 0.12),
+            position=(pos[0], pos[1], -0.01),
+            on_click=callback,
+        )
+        Entity(
+            parent=btn,
+            model="quad",
+            color=accent,
+            scale=(0.012, 0.75),
+            position=(-0.48, 0, -0.01),
+        )
+        return btn
+
+    def toggle_settings_panel(self) -> None:
+        visible = not self.settings_modal_bg.enabled
+        self.settings_modal_bg.enabled = visible
+        self.settings_border.enabled = visible
+        self.settings_frame.enabled = visible
+        if visible:
+            self.close_level_panel()
+            self.help_panel.close()
+
+    def close_settings_panel(self) -> None:
+        self.settings_modal_bg.enabled = False
+        self.settings_border.enabled = False
+        self.settings_frame.enabled = False
 
     def _create_cad_button(
         self,
@@ -506,3 +604,18 @@ class HUD:
 
     def update_stats(self, msg: str) -> None:
         self.stats_text.text = msg
+        lines = msg.split("\n")
+        num_lines = len(lines)
+
+        # 1. Tính chiều rộng dựa trên dòng chữ dài nhất
+        max_chars = max(len(line) for line in lines) if lines else 0
+        # Cỡ chữ scale=0.60: mỗi ký tự chiếm khoảng ~0.0105 độ rộng màn hình
+        new_w = max(0.32, (max_chars * 0.0105) + 0.04)
+
+        # 2. Tính chiều cao dựa trên số lượng dòng (khoảng cách thực tế ~0.020/dòng)
+        new_h = 0.025 + (num_lines * 0.022)
+
+        # 3. Cập nhật kích thước đồng bộ cho Panel, Border và Accent line
+        self.stats_panel.scale = (new_w, new_h)
+        self.stats_border.scale = (new_w + 0.004, new_h + 0.004)
+        self.stats_accent.scale = (0.006, new_h)

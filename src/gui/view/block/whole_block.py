@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ursina import Entity, Vec3, curve
+from ursina.shaders import lit_with_shadows_shader
 
 from src.gui import config
 from src.gui.geometry import Orientation
@@ -31,7 +32,12 @@ _FLY_UP_DISTANCE = 15
 class WholeBlock:
     def __init__(self, gate: AnimationGate, start_r: int, start_c: int) -> None:
         self._gate = gate
-        self.entity = Entity(model="cube", color=WHOLE_COLOR, texture="white_cube")
+        self.entity = Entity(
+            model="cube",
+            color=WHOLE_COLOR,
+            texture="white_cube",
+            shader=lit_with_shadows_shader,
+        )
         self.set_transform(start_r, start_c, Orientation.STANDING)
 
     # ---- state ------------------------------------------------------- #

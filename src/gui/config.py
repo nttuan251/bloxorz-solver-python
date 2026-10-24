@@ -1,37 +1,48 @@
+
 from ursina import Vec3, color
 from ursina.color import rgb
 
 from src.game.core.tile import TileType
 
+
 TILE_SCALE = Vec3(0.95, 0.2, 0.95)
+
+
+def hex_color(value: str):
+    value = value.lstrip("#")
+    r = int(value[0:2], 16)
+    g = int(value[2:4], 16)
+    b = int(value[4:6], 16)
+    return rgb(r / 255, g / 255, b / 255)
+
 
 TILE_CONFIGS = {
     TileType.START: {
-        "color": color.lime,
+        "color": hex_color("#42E8C5"),
         "model": "cube",
         "scale": TILE_SCALE,
         "y": -0.1,
     },
     TileType.GOAL: {
-        "color": color.white,
+        "color": hex_color("#FFC857"),
         "model": "cube",
         "scale": Vec3(0.95, 0.05, 0.95),
         "y": -0.15,
     },
     TileType.NORMAL: {
-        "color": color.gray,
+        "color": hex_color("#263B59"),
         "model": "cube",
         "scale": TILE_SCALE,
         "y": -0.1,
     },
     TileType.FRAGILE: {
-        "color": rgb(231 / 255, 76 / 255, 60 / 255),
+        "color": hex_color("#FF647C"),
         "model": "cube",
         "scale": TILE_SCALE,
         "y": -0.1,
     },
     TileType.BRIDGE: {
-        "color": color.azure,
+        "color": hex_color("#398DFF"),
         "model": "cube",
         "scale": TILE_SCALE,
         "y": -0.1,
@@ -61,6 +72,7 @@ TILE_CONFIGS = {
         "y": 0.005,
     },
 }
+
 
 CAMERA_ORTHOGRAPHIC = True
 CAMERA_OFFSET = Vec3(7, 11, -11)

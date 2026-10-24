@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from ursina import Entity, Vec3, color, curve, destroy, invoke
 from ursina.color import rgb
+from ursina.shaders import lit_with_shadows_shader, unlit_shader
 
 from src.game.core.tile import TileType
 from src.gui import config
@@ -31,12 +32,6 @@ def _rgb255(r: int, g: int, b: int) -> color.Color:
     return rgb(r / 255, g / 255, b / 255)
 
 
-DEFAULT_BRIDGE_COLOR = _rgb255(84, 160, 255)
-BRIDGE_COLOR_BY_SWITCH: dict[TileType, color.Color] = {
-    TileType.SOFT_SWITCH: _rgb255(255, 107, 129),
-    TileType.HEAVY_SWITCH: _rgb255(84, 160, 255),
-    TileType.SPLIT_SWITCH: _rgb255(29, 209, 161),
-}
 
 
 def _world_pos(coord: Coordinate, y: float) -> Vec3:
@@ -65,24 +60,7 @@ class Board:
         self.rows = max((r for r, _ in level_map), default=0) + 1
         self.cols = max((c for _, c in level_map), default=0) + 1
 
-        self._bridge_colors = self._compute_bridge_colors()
         self._build_board(animate_entrance)
-
-    def _compute_bridge_colors(self) -> dict[Coordinate, color.Color]:
-        level_map = self.level.get_map()
-        colors: dict[Coordinate, color.Color] = {}
-        for coord, tile_type in level_map.items():
-            if tile_type not in SWITCH_TILE_TYPES:
-                continue
-            for (
-                bridge_coord,
-                _,
-            ) in self.level.get_associated_coords_and_actions_from_switch(coord):
-                colors.setdefault(bridge_coord, BRIDGE_COLOR_BY_SWITCH[tile_type])
-        return colors
-
-    def _bridge_color(self, coord: Coordinate) -> color.Color:
-        return self._bridge_colors.get(coord, DEFAULT_BRIDGE_COLOR)
 
     @staticmethod
     def _tile_config(tile_type: TileType) -> dict:
@@ -125,7 +103,7 @@ class Board:
     ) -> Entity:
         cfg = self._tile_config(tile_type)
         is_bridge = tile_type == TileType.BRIDGE
-        target_color = self._bridge_color(coord) if is_bridge else cfg["color"]
+        target_color = cfg["color"]
         target_pos = _world_pos(coord, cfg["y"])
         rises = animate and not is_bridge
 
@@ -138,7 +116,13 @@ class Board:
             rotation=cfg.get("rotation", Vec3(0, 0, 0)),
             double_sided=True,
             enabled=not is_bridge,
+            shader=(
+                lit_with_shadows_shader
+                if cfg["model"] == "cube"
+                else unlit_shader
+            ),
         )
+
         if rises:
             self._rise(
                 entity,
@@ -159,6 +143,7 @@ class Board:
             texture="white_cube",
             position=target_pos - Vec3(0, SPAWN_DEPTH, 0) if animate else target_pos,
             scale=config.TILE_SCALE,
+            shader=lit_with_shadows_shader,
         )
         if animate:
             self._rise(base, target_pos, base_color, self._entrance_delay(coord), 0.6)
@@ -180,7 +165,7 @@ class Board:
         self, coord: Coordinate, entity: Entity, animate_entrance: bool
     ) -> None:
         target_pos = _world_pos(coord, config.TILE_CONFIGS[TileType.BRIDGE]["y"])
-        target_color = self._bridge_color(coord)
+        target_color = config.TILE_CONFIGS[TileType.BRIDGE]["color"]
         entity.enabled = True
 
         if animate_entrance:

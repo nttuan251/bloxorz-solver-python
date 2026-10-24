@@ -7,8 +7,8 @@ from ursina.color import rgb
 
 from src.gui.geometry import Orientation
 
-WHOLE_COLOR = color.orange
-ACTIVE_CUBE_COLOR = rgb(29 / 255, 209 / 255, 161 / 255)
+WHOLE_COLOR = rgb(0 / 255, 229 / 255, 255 / 255)
+ACTIVE_CUBE_COLOR = rgb(179/255, 136/255, 255/255)
 INACTIVE_CUBE_COLOR = color.dark_gray
 
 CUBE_Y = 0.45

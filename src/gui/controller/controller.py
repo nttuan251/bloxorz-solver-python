@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from pathlib import Path
 
-from ursina import Vec3
+from ursina import AmbientLight, DirectionalLight, Vec3, color
 
 from src.game.core.action import Action
 from src.gui.controller.action_executor import ActionExecutor
@@ -11,6 +11,8 @@ from src.gui.controller.camera_rig import CameraRig
 from src.gui.controller.solver_playback import SolverPlayback, SolverRequest
 from src.gui.controller.stage import Stage
 from src.gui.ui import HUD
+
+from src.gui.view.background import MinimalistVoid
 
 Callback = Callable[[], None]
 
@@ -32,7 +34,12 @@ class GameController:
         self._stage: Stage | None = None
         self._executor: ActionExecutor | None = None
 
+        self._setup_lighting()
+
         self.camera_rig = CameraRig()
+
+        self.background = MinimalistVoid()
+
         self.hud = HUD(
             on_solve_click=self.solve_and_play,
             on_manual_click=self.switch_to_manual,
@@ -191,3 +198,16 @@ class GameController:
     def _on_win_finished(self) -> None:
         self.playback.is_playing = False
         self.hud.update_stats(self.hud.stats_text.text + "\nSTAGE CLEAR!")
+
+    def _setup_lighting(self) -> None:
+        self.ambient_light = AmbientLight(
+            color=color.rgba(90, 100, 120, 255)
+        )
+
+        self.key_light = DirectionalLight(
+            shadows=True,
+            shadow_map_resolution=(2048, 2048),
+            color=color.rgba(255, 245, 225, 255),
+        )
+
+        self.key_light.look_at(Vec3(1, -2, -1))

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from ursina import Entity, Vec3, curve
+from ursina.shaders import lit_with_shadows_shader
 
 from src.game.core.action import Action
 from src.gui import config
@@ -43,6 +44,7 @@ class SplitCubes:
                 texture="white_cube",
                 position=cube_position(r, c),
                 scale=CUBE_SCALE,
+                shader=lit_with_shadows_shader,
             )
         self._active_slot = 1
         self._update_styles()
