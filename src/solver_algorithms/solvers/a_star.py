@@ -4,7 +4,7 @@ from src.game.core.state import State
 from src.game.logic.engine import BloxorzGame
 from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
 from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
-from src.solver_algorithms.cost_calculator.cost_calculator_factory import (
+from src.solver_algorithms.cost.cost_calculator_factory import (
     CostCalculatorFactory,
 )
 from src.solver_algorithms.frontiers.PQueue import PQueue

@@ -39,10 +39,12 @@ class Level:
     def is_valid_tile(
         self, coords: Coordinate, bridges_open_states: dict[Coordinate, bool]
     ) -> bool:
-        is_void = self.map.get(coords) is None
         is_closed_bridge = bridges_open_states.get(coords) is False
 
-        return not is_void and not is_closed_bridge
+        return self.is_tile(coords) and not is_closed_bridge
+
+    def is_tile(self, coords: Coordinate) -> bool:
+        return coords in self.map
 
     def is_switch(self, coords: Coordinate) -> bool:
         return (
@@ -87,20 +89,21 @@ class Level:
 
         return split_switches
 
-    def has_tile(self, coords: Coordinate) -> bool:
-        """True if the cell has any tile (bridges count, whether open or closed)."""
-        return coords in self.map
-
-    def get_tile_distances_from(self, source: Coordinate) -> dict[Coordinate, int]:
-        """Fewest 4-neighbour steps from source to every tile, walking only on tiles
-        and treating every bridge as open. Tiles that cannot be reached are absent."""
+    def get_tile_distances_from_source(
+        self, source: Coordinate
+    ) -> dict[Coordinate, int]:
         distances = {source: 0}
         queue = deque([source])
 
         while queue:
             row, col = queue.popleft()
-            for neighbour in ((row - 1, col), (row + 1, col), (row, col - 1), (row, col + 1)):
-                if self.has_tile(neighbour) and neighbour not in distances:
+            for neighbour in (
+                (row - 1, col),
+                (row + 1, col),
+                (row, col - 1),
+                (row, col + 1),
+            ):
+                if self.is_tile(neighbour) and neighbour not in distances:
                     distances[neighbour] = distances[(row, col)] + 1
                     queue.append(neighbour)
 
