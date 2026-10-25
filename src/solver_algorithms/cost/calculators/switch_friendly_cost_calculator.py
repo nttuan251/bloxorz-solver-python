@@ -17,10 +17,10 @@ class SwitchFriendlyCostCalculator(CostCalculator):
     Every cost is >= 1, which the admissible heuristics rely on.
     """
 
-    ROLL_COST: ClassVar[float] = 2
+    ROLL_COST: ClassVar[float] = 1.1
     SWITCH_COST: ClassVar[float] = 1
-    FRAGILE_COST: ClassVar[float] = 4
-    SWITCH_CONTROL_COST: ClassVar[float] = 2
+    FRAGILE_COST: ClassVar[float] = 3
+    SWITCH_CONTROL_COST: ClassVar[float] = 1.5
 
     def calculate_cost(self, current_state: State, next_state: State) -> float:
         if MoveInfoDeterminer.is_switch_control(current_state, next_state):

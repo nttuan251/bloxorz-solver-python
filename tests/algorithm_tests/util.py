@@ -61,6 +61,8 @@ def perform_test(
         result[solver_parameter] = []
         solver_type, cost_calculator_type, heuristic_calculator_type = solver_parameter
 
+        results_of_current_solver: list[SolutionWithMetrics] = []
+
         for test_target_group in test_target_groups:
             results_of_current_group: list[SolutionWithMetrics] = []
 
@@ -77,9 +79,13 @@ def perform_test(
                 solution_with_metrics = solver_runner.solve_for_metrics()
 
                 results_of_current_group.append(solution_with_metrics)
+                results_of_current_solver.append(solution_with_metrics)
 
-            aggregated_result = aggregate_results(results_of_current_group)
-            result[solver_parameter].append(aggregated_result)
+            aggregated_result_by_group = aggregate_results(results_of_current_group)
+            result[solver_parameter].append(aggregated_result_by_group)
+
+        aggregated_result_total = aggregate_results(results_of_current_solver)
+        result[solver_parameter].append(aggregated_result_total)
 
     return result
 
@@ -97,8 +103,7 @@ def print_result(
             group_names, group_results
         ):
             print(
-                f"- Result on {group_name}: Mean search time of {time:.6f} seconds, mean peak memory of {memory:.6f} MB, {expanded:.3f} mean expanded notes, "
-                f"{length:.3f} mean solution length"
+                f"- Result on {group_name}: Mean search time of {time:.6f} seconds, mean peak memory of {memory:.6f} MB, {expanded:.3f} mean expanded notes, {length:.3f} mean solution length"
             )
 
         print()

@@ -1,7 +1,7 @@
 from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
 from src.solver_algorithms.core.heuristic_calculator_type import HeuristicCalculatorType
 from src.solver_algorithms.core.solver_type import SolverType
-from test.util import SolverParameter, perform_test, print_result
+from tests.algorithm_tests.util import SolverParameter, perform_test, print_result
 
 GROUP_1 = [1, 2, 3]
 GROUP_2 = [4, 5]
@@ -11,7 +11,7 @@ GROUP_5 = [29, 30, 31, 32, 33]
 
 ALL_GROUPS = [GROUP_1, GROUP_2, GROUP_3, GROUP_4, GROUP_5]
 
-CHOSEN_HEURISTIC = HeuristicCalculatorType.GRID_DISTANCE
+CHOSEN_HEURISTIC = HeuristicCalculatorType.RELAXED_BLOCK
 
 
 def test_baseline_algorithms_on_all_groups() -> None:
@@ -31,7 +31,10 @@ def test_baseline_algorithms_on_all_groups() -> None:
     ]
 
     test_result = perform_test(solver_parameters, ALL_GROUPS)
-    print_result(test_result, ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5"])
+    print_result(
+        test_result,
+        ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "all tested Groups"],
+    )
 
 
 def test_heuristic_comparison_on_all_groups() -> None:
@@ -59,7 +62,10 @@ def test_heuristic_comparison_on_all_groups() -> None:
     ]
 
     test_result = perform_test(solver_parameters, ALL_GROUPS)
-    print_result(test_result, ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5"])
+    print_result(
+        test_result,
+        ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "all tested Groups"],
+    )
 
 
 def test_cost_comparison_on_all_groups() -> None:
@@ -71,10 +77,13 @@ def test_cost_comparison_on_all_groups() -> None:
     ]
 
     test_result = perform_test(solver_parameters, ALL_GROUPS)
-    print_result(test_result, ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5"])
+    print_result(
+        test_result,
+        ["Group 1", "Group 2", "Group 3", "Group 4", "Group 5", "all tested Groups"],
+    )
 
 
 if __name__ == "__main__":
-    test_baseline_algorithms_on_all_groups()
+    # test_baseline_algorithms_on_all_groups()
     # test_heuristic_comparison_on_all_groups()
-    # test_cost_comparison_on_all_groups()
+    test_cost_comparison_on_all_groups()
