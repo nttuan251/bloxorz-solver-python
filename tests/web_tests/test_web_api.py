@@ -44,9 +44,12 @@ class StepTests(unittest.TestCase):
             api.step("level_01", start, "SWITCH_CONTROL")
 
     def test_state_from_another_level_is_rejected(self):
-        other = api.level_payload("level_02")["state"]  # has bridges level_01 does not have
+        # any two levels with different bridges will do; the map order can change
+        payloads = [api.level_payload(lv["id"]) for lv in api.list_levels()]
+        plain = next(p for p in payloads if not p["state"]["bridges"])
+        bridged = next(p for p in payloads if p["state"]["bridges"])
         with self.assertRaises(api.ApiError):
-            api.step("level_01", other, "DOWN")
+            api.step(plain["id"], bridged["state"], "DOWN")
 
     def test_unknown_action_is_rejected(self):
         start = api.level_payload("level_01")["state"]
