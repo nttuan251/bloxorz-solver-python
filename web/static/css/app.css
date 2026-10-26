@@ -47,7 +47,7 @@
            radial-gradient(40% 10% at 75% 15%, rgba(120, 255, 200, 0.18), transparent 70%);
   --neb-speed: 18s;
   --ink: rgba(4, 12, 26, 0.8); --ink-solid: #061227; --ivory-dim: #a7c2c9;
-  --gold: #8affc6; --gold-deep: #2fc785; --heat-low: #ffd36e; --heat-high: #ff5c8a;
+  --gold: #8affc6; --gold-deep: #2fc785;
 }
 
 /* nebula clouds drifting behind the canvas, plus shooting stars added by js/sky.js */
@@ -360,7 +360,7 @@ button { cursor: pointer; }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
 .toggle input { accent-color: var(--heat-high); width: 16px; height: 16px; }
 .heat-legend { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ivory-dim); }
-.heat-legend i { flex: 1; height: 6px; border-radius: 3px; background: linear-gradient(90deg, var(--heat-low), var(--heat-high)); }
+.heat-legend i { flex: 1; height: 10px; border-radius: 3px; background: linear-gradient(90deg, var(--heat-low), var(--heat-mid), var(--heat-high)); }
 
 .compare { border-top: 1px solid var(--ink-line); padding-top: 12px; overflow-x: auto; }
 .compare table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
@@ -490,14 +490,14 @@ button { cursor: pointer; }
 .legend li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; font-size: 14px; line-height: 1.45; color: var(--ivory-dim); }
 .legend b { display: block; color: var(--ivory); font-weight: 600; }
 .sw { width: 40px; height: 40px; border-radius: 9px; position: relative; box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18); }
-.sw-floor, .sw-soft, .sw-heavy, .sw-split, .sw-goal { background: #e9dfcf; }
-.sw-fragile { background: #edb867; background-image: linear-gradient(115deg, transparent 46%, rgba(120, 70, 20, 0.6) 48%, transparent 51%); }
-.sw-bridge { background: repeating-linear-gradient(90deg, #a77d55 0 12px, #8a6442 12px 13px); }
+.sw-floor, .sw-soft, .sw-heavy, .sw-split, .sw-goal { background: var(--tile-floor); }
+.sw-fragile { background: var(--tex-crack) center / cover, var(--tile-fragile); }
+.sw-bridge { background: var(--tex-plank) center / cover; }
 .sw-soft::after, .sw-heavy::after, .sw-split::after, .sw-goal::after { content: ""; position: absolute; inset: 0; margin: auto; }
-.sw-soft::after { width: 18px; height: 18px; border-radius: 50%; background: #c9a253; }
-.sw-heavy::after { width: 22px; height: 22px; background: linear-gradient(45deg, transparent 40%, #c9a253 40% 60%, transparent 60%), linear-gradient(-45deg, transparent 40%, #c9a253 40% 60%, transparent 60%); }
-.sw-split::after { width: 24px; height: 18px; border-left: 6px solid #c9a253; border-right: 6px solid #c9a253; border-radius: 50%; }
-.sw-goal::after { width: 22px; height: 22px; border-radius: 3px; background: #241a12; box-shadow: 0 0 10px 2px rgba(242, 196, 109, 0.75); }
+.sw-soft::after { width: 18px; height: 18px; border-radius: 50%; background: var(--tile-brass); }
+.sw-heavy::after { width: 22px; height: 22px; background: linear-gradient(45deg, transparent 40%, var(--tile-brass) 40% 60%, transparent 60%), linear-gradient(-45deg, transparent 40%, var(--tile-brass) 40% 60%, transparent 60%); }
+.sw-split::after { width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(90deg, var(--tile-brass) 0 42%, transparent 42% 58%, var(--tile-brass) 58%); }
+.sw-goal::after { width: 22px; height: 22px; border-radius: 3px; background: var(--tile-hole); box-shadow: 0 0 10px 3px var(--tile-glow); }
 
 .sheet.win { width: min(420px, 100%); text-align: center; }
 .sheet.win h2 { font-size: 44px; color: var(--gold); }

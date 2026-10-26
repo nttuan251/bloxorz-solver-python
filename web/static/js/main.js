@@ -1,11 +1,13 @@
 // Game controller: wires keyboard and HUD to the Python engine and drives the 3D scene.
+import * as THREE from "three";
 import { api } from "./api.js";
 import { Stage } from "./scene.js";
-import { Board } from "./board.js";
+import { Board, plankTint } from "./board.js";
 import { Block } from "./block.js";
 import { finishAll, setSpeed, wait } from "./tween.js";
 import { THEMES, themeById } from "./themes.js";
 import { fireworks } from "./fireworks.js";
+import { crackTexture, plankTexture } from "./geometry.js";
 
 const $ = id => document.getElementById(id);
 const ACTIONS = { UP: [0, -1], DOWN: [0, 1], LEFT: [-1, 0], RIGHT: [1, 0] };
@@ -17,6 +19,20 @@ const ALGO_NOTES = {
   "A*": "A*: cheapest path so far plus a heuristic estimate of what is left.",
 };
 
+/** The bridge texture multiplied by the theme's plank tint, exactly as Board colours it. */
+function tintedPlanks(wood) {
+  const src = plankTexture.image;
+  const c = document.createElement("canvas");
+  c.width = src.width;
+  c.height = src.height;
+  const g = c.getContext("2d");
+  g.drawImage(src, 0, 0);
+  g.globalCompositeOperation = "multiply";
+  g.fillStyle = `#${plankTint(new THREE.Color(wood)).getHexString()}`;
+  g.fillRect(0, 0, c.width, c.height);
+  return c.toDataURL();
+}
+
 const store = {
   get(key, fallback) { try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; } },
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* private mode */ } },
@@ -26,7 +42,7 @@ class Game {
   constructor() {
     this.stage = new Stage($("scene"));
     this.theme = themeById(store.get("theme", THEMES[0].id));
-    document.documentElement.dataset.theme = this.theme.id;
+    this._applyThemeCss(this.theme);
     this.stage.applyTheme(this.theme);
     this.levels = [];
     this.level = null;
@@ -133,7 +149,7 @@ class Game {
     const theme = themeById(id);
     this.theme = theme;
     store.set("theme", theme.id);
-    document.documentElement.dataset.theme = theme.id;
+    this._applyThemeCss(theme);
     this.stage.applyTheme(theme);
     this._syncThemes();
     if (!this.level) return;
@@ -152,6 +168,22 @@ class Game {
     if (this.won) this.block.whole.visible = false; // already sank into the goal
     if (this.result) this._applySearchLayer(this.result);
     this.busy = false;
+  }
+
+  /** themes.js is the one source of colours: copy the board colours into CSS for the legends. */
+  _applyThemeCss(theme) {
+    const root = document.documentElement;
+    root.dataset.theme = theme.id;
+    const b = theme.board;
+    const vars = {
+      "--heat-low": b.heatLow, "--heat-mid": b.heatMid, "--heat-high": b.heatHigh,
+      "--tile-floor": b.stone, "--tile-fragile": b.fragile, "--tile-wood": b.wood,
+      "--tile-brass": b.brass, "--tile-hole": b.hole, "--tile-glow": b.glow,
+    };
+    for (const [k, v] of Object.entries(vars)) root.style.setProperty(k, v);
+    // the legend draws the very same canvas textures the tiles use
+    root.style.setProperty("--tex-crack", `url(${crackTexture.image.toDataURL()})`);
+    root.style.setProperty("--tex-plank", `url(${tintedPlanks(b.wood)})`);
   }
 
   _syncThemes() {

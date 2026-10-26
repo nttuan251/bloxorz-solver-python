@@ -23,7 +23,7 @@ const GEO = {
 
 // the plank texture is painted in the original brown (#a87c54); divide it out so the theme's wood colour shows
 const PLANK_BASE = new THREE.Color("#a87c54");
-const plankTint = wood => new THREE.Color(
+export const plankTint = wood => new THREE.Color(
   Math.min(1, wood.r / PLANK_BASE.r), Math.min(1, wood.g / PLANK_BASE.g), Math.min(1, wood.b / PLANK_BASE.b));
 
 function stoneMaterial(color, rough = 0.88) {
@@ -314,7 +314,10 @@ export class Board {
     for (const [r, c, n] of explored) {
       const t = Math.log1p(n) / Math.log1p(max);
       const mat = new THREE.MeshBasicMaterial({
-        color: this.colors.heatLow.clone().lerp(this.colors.heatHigh, t),
+        // three stops so "a few visits" and "many visits" read as different colours, not shades
+        color: t < 0.5
+          ? this.colors.heatLow.clone().lerp(this.colors.heatMid, t * 2)
+          : this.colors.heatMid.clone().lerp(this.colors.heatHigh, t * 2 - 1),
         transparent: true, opacity: 0, depthWrite: false,
       });
       const plane = new THREE.Mesh(GEO.top, mat);
@@ -323,7 +326,7 @@ export class Board {
       plane.renderOrder = 2;
       this.heat.add(plane);
       const dist = Math.abs(r - start[0]) + Math.abs(c - start[1]);
-      const target = 0.28 + 0.5 * t;
+      const target = 0.55 + 0.4 * t;
       jobs.push(tween({ duration: 380, delay: dist * 45, scale: false, update: k => { mat.opacity = target * k; } }));
     }
     await Promise.all(jobs);
