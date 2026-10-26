@@ -88,6 +88,7 @@ class Game {
     this.busy = true;
     // a newer load (or restart) may start while this one waits; the older one then just stops
     const token = ++this.loadToken;
+    this.queued = null; // keys pressed for the old level must not move the new one
     const data = await api.level(id);
     if (token !== this.loadToken) return;
     if (this.board && animateOut) await Promise.all([this.board.exit(), this.block?.exit()]);
@@ -119,8 +120,8 @@ class Game {
     if (token !== this.loadToken) return;
     await this.block.dropIn(data.state);
     if (token !== this.loadToken) return;
+    this.queued = null;
     this.busy = false;
-    this._flushQueue();
   }
 
   async restart({ quiet = false } = {}) {
@@ -129,6 +130,7 @@ class Game {
     this.won = false;
     const token = ++this.loadToken;
     this.busy = true;
+    this.queued = null; // keys mashed while the block was falling are dropped, not replayed later
     finishAll();
     this.board.clearSearch();
     this.board.restoreTiles();
@@ -139,6 +141,7 @@ class Game {
     this.busy = true;
     await this.block.dropIn(this.state);
     if (token !== this.loadToken) return;
+    this.queued = null;
     this.busy = false;
     if (!quiet) this._toast("Level restarted");
   }
