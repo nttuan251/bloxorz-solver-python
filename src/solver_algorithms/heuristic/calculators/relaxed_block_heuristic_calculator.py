@@ -16,25 +16,6 @@ _ROLLS = (Action.UP, Action.DOWN, Action.LEFT, Action.RIGHT)
 
 
 class RelaxedBlockHeuristicCalculator(GridDistanceHeuristicCalculator):
-    """Exact number of rolls of the whole 1x1x2 block in an easier version of the game.
-
-    The relaxed game uses the same rolling rules (StateMover from the engine) but:
-      - every bridge is always open and switches do nothing,
-      - the block may stand on fragile tiles,
-      - rolling onto a split switch may either teleport (as in the real game) or
-        simply continue rolling.
-    Every real path of the whole block is also a path of the relaxed game, so its
-    exact remaining number of actions is a lower bound of the real one.
-
-    It is computed once per level with a backward multi-source Dijkstra over all
-    block poses: the goal pose has value 0, and standing on a split switch p has the
-    value of the split state right after the teleport (GRID_DISTANCE bound, at least
-    2). Split states themselves use the GRID_DISTANCE heuristic.
-
-    Admissible and consistent for any cost function with every cost >= 1: it is an
-    exact distance in a relaxed graph whose every edge costs 1 <= the real cost.
-    """
-
     def __init__(self, level: Level) -> None:
         super().__init__(level)
 

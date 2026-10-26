@@ -6,17 +6,6 @@ from src.solver_algorithms.cost.move_info_determiner import MoveInfoDeterminer
 
 
 class SwitchFriendlyCostCalculator(CostCalculator):
-    """The example from the assignment: fragile tiles are expensive, switches are cheap.
-
-    - ROLL_COST for a normal roll or a mini cube move,
-    - SWITCH_COST for a move that presses a switch (opens / closes a bridge or
-      teleports the block): switches move the puzzle forward,
-    - FRAGILE_COST for landing on a fragile tile (risky); it wins over SWITCH_COST
-      when one move does both,
-    - SWITCH_CONTROL_COST for switching the controlled cube while split.
-    Every cost is >= 1, which the admissible heuristics rely on.
-    """
-
     ROLL_COST: ClassVar[float] = 1.1
     SWITCH_COST: ClassVar[float] = 1
     FRAGILE_COST: ClassVar[float] = 3

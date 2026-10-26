@@ -7,23 +7,6 @@ from src.solver_algorithms.heuristic.heuristic_calculator import HeuristicCalcul
 
 
 class TeleportAwareHeuristicCalculator(HeuristicCalculator):
-    """Admissible and consistent heuristic for any cost function with every cost >= 1.
-
-    It is a lower bound on the number of actions still needed, hence on the cost.
-    One roll moves the block's nearest cell at most 2 cells closer to a target and
-    a mini cube move at most 1, so reaching a target at distance d needs at least
-    ceil(d / 2) actions. A split switch teleports the block, so the bound of a cell
-    is the cheaper of going straight to the goal or through a split switch:
-
-        bound(x) = min(ceil(|x - goal| / 2),
-                       min over split switches p of ceil(|x - p| / 2) + after_teleport(p))
-        after_teleport(p) = min over the two destinations c of bound(c)
-
-    Extra terms: a split block needs at least 2 more actions (one cube move to
-    merge, one roll to stand up), and a block lying across the goal also needs at
-    least 2 (no single roll stands it on a cell it covers).
-    """
-
     def __init__(self, level: Level) -> None:
         super().__init__(level)
 

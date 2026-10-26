@@ -1,11 +1,3 @@
-"""Local web server for the three.js GUI. Standard library only.
-
-Run from the repository root:
-
-    python -m web.server            # then open http://127.0.0.1:8000
-    python -m web.server --port 9000 --no-browser
-"""
-
 from __future__ import annotations
 
 import argparse
@@ -53,9 +45,17 @@ class Handler(BaseHTTPRequestHandler):
         if body is None:
             return
         if path == "/api/step":
-            self._call(api.step, body.get("level"), body.get("state"), body.get("action"))
+            self._call(
+                api.step, body.get("level"), body.get("state"), body.get("action")
+            )
         elif path == "/api/solve":
-            self._call(api.solve, body.get("level"), body.get("solver"), body.get("cost"), body.get("heuristic"))
+            self._call(
+                api.solve,
+                body.get("level"),
+                body.get("solver"),
+                body.get("cost"),
+                body.get("heuristic"),
+            )
         else:
             self._error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
 
@@ -68,7 +68,10 @@ class Handler(BaseHTTPRequestHandler):
             self._error(HTTPStatus.BAD_REQUEST, str(exc))
         except Exception:  # keep the server alive, show the traceback in the terminal
             traceback.print_exc()
-            self._error(HTTPStatus.INTERNAL_SERVER_ERROR, "Server error, see the terminal for details")
+            self._error(
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+                "Server error, see the terminal for details",
+            )
 
     def _read_json(self) -> dict | None:
         length = int(self.headers.get("Content-Length") or 0)
@@ -105,22 +108,31 @@ class Handler(BaseHTTPRequestHandler):
             return
         data = file.read_bytes()
         self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", mimetypes.guess_type(file.name)[0] or "application/octet-stream")
+        self.send_header(
+            "Content-Type",
+            mimetypes.guess_type(file.name)[0] or "application/octet-stream",
+        )
         self.send_header("Content-Length", str(len(data)))
-        self.send_header("Cache-Control", "no-store")  # always serve the latest files while developing
+        self.send_header(
+            "Cache-Control", "no-store"
+        )  # always serve the latest files while developing
         self.end_headers()
         self.wfile.write(data)
 
     def log_message(self, fmt: str, *args) -> None:
         if "/api/" in self.path and not self.path.startswith("/api/step"):
-            sys.stderr.write(f"  {self.command} {self.path} -> {args[1] if len(args) > 1 else ''}\n")
+            sys.stderr.write(
+                f"  {self.command} {self.path} -> {args[1] if len(args) > 1 else ''}\n"
+            )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Bloxorz web GUI")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--no-browser", action="store_true", help="do not open a browser tab")
+    parser.add_argument(
+        "--no-browser", action="store_true", help="do not open a browser tab"
+    )
     args = parser.parse_args()
 
     server = ThreadingHTTPServer((args.host, args.port), Handler)

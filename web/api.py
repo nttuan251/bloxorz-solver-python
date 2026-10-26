@@ -1,9 +1,3 @@
-"""JSON-friendly wrapper around the game engine and solvers, used by the web GUI.
-
-Everything here is plain Python: the browser only draws what these functions return,
-so game rules and search algorithms stay in `src/` as the single source of truth.
-"""
-
 from __future__ import annotations
 
 import re
@@ -79,7 +73,9 @@ def level_payload(level_id: str) -> dict[str, Any]:
                 "r": r,
                 "c": c,
                 "type": level.get_map()[(r, c)].value,
-                "targets": [{"r": tr, "c": tc, "action": act.value} for (tr, tc), act in targets],
+                "targets": [
+                    {"r": tr, "c": tc, "action": act.value} for (tr, tc), act in targets
+                ],
             }
         )
     rows = max(r for r, _ in level.get_map()) + 1
@@ -104,14 +100,21 @@ def state_to_json(state: State) -> dict[str, Any]:
     return {
         "a": list(state.get_first_coords()),
         "b": list(state.get_second_coords()),
-        "bridges": [[r, c, is_open] for (r, c), is_open in sorted(state.get_bridges_open_states().items())],
+        "bridges": [
+            [r, c, is_open]
+            for (r, c), is_open in sorted(state.get_bridges_open_states().items())
+        ],
         "split": state.is_split(),
         "active": list(controlled) if controlled is not None else None,
     }
 
 
 def _coord(value: Any) -> tuple[int, int]:
-    if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
+    if not (
+        isinstance(value, list)
+        and len(value) == 2
+        and all(isinstance(v, int) for v in value)
+    ):
         raise ApiError(f"Expected [row, col], got {value!r}")
     return value[0], value[1]
 
@@ -146,7 +149,10 @@ def _failure_reason(level: Level, attempted: State) -> str:
             return "fall"
     if attempted.is_standing() and level.is_fragile_tile(attempted.get_first_coords()):
         return "fragile"
-    if attempted.is_split() and attempted.get_first_coords() == attempted.get_second_coords():
+    if (
+        attempted.is_split()
+        and attempted.get_first_coords() == attempted.get_second_coords()
+    ):
         return "blocked"
     return "fall"
 
@@ -190,7 +196,11 @@ def options() -> dict[str, Any]:
             for name, (_, uses_cost, uses_h) in SOLVERS.items()
         ],
         "costs": [c.value for c in CostCalculatorType],
-        "heuristics": [h.value for h in HeuristicCalculatorType if h != HeuristicCalculatorType.TRIVIAL],
+        "heuristics": [
+            h.value
+            for h in HeuristicCalculatorType
+            if h != HeuristicCalculatorType.TRIVIAL
+        ],
     }
 
 
@@ -203,7 +213,9 @@ def _enum(enum_type: Any, value: Any, default: Any) -> Any:
         raise ApiError(f"Unknown {enum_type.__name__}: {value!r}") from exc
 
 
-def solve(level_id: str, solver_name: Any, cost: Any = None, heuristic: Any = None) -> dict[str, Any]:
+def solve(
+    level_id: str, solver_name: Any, cost: Any = None, heuristic: Any = None
+) -> dict[str, Any]:
     """Solve from the level's start state and return the path plus search metrics.
 
     `explored` counts, for every tile, how many expanded states had a block or cube on it.
@@ -212,15 +224,23 @@ def solve(level_id: str, solver_name: Any, cost: Any = None, heuristic: Any = No
         raise ApiError(f"Unknown solver: {solver_name!r}")
     solver_type, uses_cost, uses_heuristic = SOLVERS[solver_name]
 
-    cost_type = _enum(CostCalculatorType, cost, CostCalculatorType.UNIFORM) if uses_cost else None
+    cost_type = (
+        _enum(CostCalculatorType, cost, CostCalculatorType.UNIFORM)
+        if uses_cost
+        else None
+    )
     if uses_heuristic:
-        heuristic_type = _enum(HeuristicCalculatorType, heuristic, HeuristicCalculatorType.TELEPORT_AWARE)
+        heuristic_type = _enum(
+            HeuristicCalculatorType, heuristic, HeuristicCalculatorType.TELEPORT_AWARE
+        )
     elif uses_cost:
         heuristic_type = HeuristicCalculatorType.TRIVIAL
     else:
         heuristic_type = None
 
-    runner = SolverRunner(solver_type, str(_level_path(level_id)), cost_type, heuristic_type)
+    runner = SolverRunner(
+        solver_type, str(_level_path(level_id)), cost_type, heuristic_type
+    )
     metrics = runner.solve_for_metrics()
     actions, path_cost = metrics.solution
 
@@ -242,7 +262,9 @@ def solve(level_id: str, solver_name: Any, cost: Any = None, heuristic: Any = No
         "level": level_id,
         "solver": solver_name,
         "cost": cost_type.value if cost_type else None,
-        "heuristic": heuristic_type.value if uses_heuristic and heuristic_type else None,
+        "heuristic": heuristic_type.value
+        if uses_heuristic and heuristic_type
+        else None,
         "found": bool(actions) or game.is_goal(game.start_state()),
         "actions": [a.value for a in actions],
         "states": [state_to_json(s) for s in states],

@@ -1,8 +1,3 @@
-"""Tests for the JSON layer between the engine and the web GUI.
-
-Run from the repository root:  python -m unittest discover tests
-"""
-
 import unittest
 
 from web import api

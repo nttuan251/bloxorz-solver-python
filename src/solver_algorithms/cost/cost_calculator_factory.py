@@ -2,9 +2,6 @@ from typing import ClassVar
 
 from src.game.core.level import Level
 from src.solver_algorithms.core.cost_calculator_type import CostCalculatorType
-from src.solver_algorithms.cost.calculators.effort_cost_calculator import (
-    EffortCostCalculator,
-)
 from src.solver_algorithms.cost.calculators.risk_aware_cost_calculator import (
     RiskAwareCostCalculator,
 )
@@ -25,7 +22,6 @@ class CostCalculatorFactory:
         CostCalculatorType.UNIFORM: UniformCostCalculator,
         CostCalculatorType.RISK_AWARE: RiskAwareCostCalculator,
         CostCalculatorType.SWITCH_FRIENDLY: SwitchFriendlyCostCalculator,
-        CostCalculatorType.EFFORT: EffortCostCalculator,
         CostCalculatorType.SPLIT_AWARE: SplitAwareCostCalculator,
     }
 

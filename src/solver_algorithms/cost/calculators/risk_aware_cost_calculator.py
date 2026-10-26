@@ -6,15 +6,6 @@ from src.solver_algorithms.cost.move_info_determiner import MoveInfoDeterminer
 
 
 class RiskAwareCostCalculator(CostCalculator):
-    """Non-uniform cost: risky moves onto fragile tiles cost more.
-
-    - ROLL_COST for a normal roll or a mini cube move,
-    - FRAGILE_COST if any cell the moving block / cube lands on is fragile,
-    - SWITCH_CONTROL_COST for switching the controlled cube while split
-      (the team counts it as a move, see docs/DECISIONS.md).
-    Every cost is >= 1, which the admissible heuristics rely on.
-    """
-
     ROLL_COST: ClassVar[float] = 1
     FRAGILE_COST: ClassVar[float] = 2
     SWITCH_CONTROL_COST: ClassVar[float] = 1
