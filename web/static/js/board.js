@@ -10,7 +10,6 @@ const palette = board => Object.fromEntries(Object.entries(board).map(([k, v]) =
 // shared geometry, built once
 const GEO = {
   slab: roundedBox(0.95, SLAB_H, 0.95, 0.07, 3).translate(0, -SLAB_H / 2, 0),
-  rock: new THREE.CylinderGeometry(0.64, 0.1, 1, 4, 1).rotateY(Math.PI / 4),
   top: new THREE.PlaneGeometry(0.9, 0.9).rotateX(-Math.PI / 2),
   hole: new THREE.PlaneGeometry(0.72, 0.72).rotateX(-Math.PI / 2),
   beam: new THREE.CylinderGeometry(0.36, 0.36, 2.4, 4, 1, true).rotateY(Math.PI / 4),
@@ -57,7 +56,6 @@ export class Board {
 
   _build() {
     const stone = this._mat(stoneMaterial(this.colors.stone));
-    const rock = this._mat(new THREE.MeshStandardMaterial({ color: this.colors.rock, roughness: 1, flatShading: true }));
     const fragile = this._mat(stoneMaterial(this.colors.fragile, 0.8));
     const wood = this._mat(new THREE.MeshStandardMaterial({ color: this.colors.wood, roughness: 0.9 }));
     const brass = this._mat(new THREE.MeshStandardMaterial({ color: this.colors.brass, roughness: 0.32, metalness: 0.55 }));
@@ -90,13 +88,6 @@ export class Board {
         slab.castShadow = slab.receiveShadow = true;
         g.add(slab);
 
-        // jagged rock underneath turns the grid into a floating island
-        const depth = 0.5 + hash2(c * 3.1, r * 1.7) * 1.4;
-        const under = new THREE.Mesh(GEO.rock, rock);
-        under.scale.set(1, depth, 1);
-        under.position.y = -SLAB_H - depth / 2 + 0.02;
-        under.rotation.y = (jitter - 0.5) * 0.3;
-        g.add(under);
 
         if (type === "FRAGILE") {
           const top = new THREE.Mesh(GEO.top, crack);

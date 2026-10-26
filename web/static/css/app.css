@@ -491,6 +491,7 @@ button { cursor: pointer; }
 .legend b { display: block; color: var(--ivory); font-weight: 600; }
 .sw { width: 40px; height: 40px; border-radius: 9px; position: relative; box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18); }
 .sw-floor, .sw-soft, .sw-heavy, .sw-split, .sw-goal { background: var(--tile-floor); }
+.sw-void { background: transparent; box-shadow: inset 0 0 0 2px var(--ink-line); border: 1px dashed var(--ivory-dim); }
 .sw-fragile { background: var(--tex-crack) center / cover, var(--tile-fragile); }
 .sw-bridge { background: var(--tex-plank) center / cover; }
 .sw-soft::after, .sw-heavy::after, .sw-split::after, .sw-goal::after { content: ""; position: absolute; inset: 0; margin: auto; }
