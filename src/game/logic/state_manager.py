@@ -10,7 +10,6 @@ class StateManager:
     def __init__(self, level: Level) -> None:
         self.level = level
         self.switch_manager = SwitchManager(level)
-        self.merge_manager = MergeManager()
 
     def act_and_activate_triggers(self, state: State, action: Action) -> State | None:
         new_state = self._act_and_validate(state, action)
@@ -23,12 +22,15 @@ class StateManager:
             return self._check_and_activate_switches_and_validate(new_state)
 
         elif action != Action.SWITCH_CONTROL:
-            new_state_after_merge = self.merge_manager.check_and_activate_merge(
-                new_state
+            # Note that switches check is done before merge check in order to avoid triggering the switches by the other non-controlled cube after merging.
+            new_state_after_switch_check = (
+                self._check_and_activate_switches_and_validate(new_state)
             )
 
-            # Note that switches are checked after merging, that way the switches that could be triggered by the other mini cube are also activated.
-            return self._check_and_activate_switches_and_validate(new_state_after_merge)
+            if new_state_after_switch_check is None:
+                return new_state_after_switch_check
+
+            return MergeManager.check_and_activate_merge(new_state_after_switch_check)
 
         else:
             # Note that switching does NOT trigger switches or merges
