@@ -49,9 +49,7 @@ class SolverRunner:
 
         search_time_in_secs = end_time - start_time
         peak_memory_in_mb = peak_memory / (1024**2)
-        solution_length = len(
-            [action for action in solution[0] if action != Action.SWITCH_CONTROL]
-        )
+        solution_length = len(solution[0])
         expanded_notes = self.solver.get_expanded_nodes()
 
         return SolutionWithMetrics(

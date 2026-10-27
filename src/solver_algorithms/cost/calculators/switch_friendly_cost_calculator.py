@@ -9,7 +9,7 @@ class SwitchFriendlyCostCalculator(CostCalculator):
     ROLL_COST: ClassVar[float] = 1.1
     SWITCH_COST: ClassVar[float] = 1
     FRAGILE_COST: ClassVar[float] = 3
-    SWITCH_CONTROL_COST: ClassVar[float] = 0
+    SWITCH_CONTROL_COST: ClassVar[float] = 1.5
 
     def calculate_cost(self, current_state: State, next_state: State) -> float:
         if MoveInfoDeterminer.is_switch_control(current_state, next_state):

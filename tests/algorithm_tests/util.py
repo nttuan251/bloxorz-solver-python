@@ -13,7 +13,7 @@ TestResult = dict[SolverParameter, list[AggregatedResult]]
 
 def load_map_location(map_id: int) -> str:
     map_location = (
-        Path(__file__).resolve().parent.parent
+        Path(__file__).resolve().parent.parent.parent
         / "maps"
         / f"level_{str(map_id).zfill(2)}.json"
     )
