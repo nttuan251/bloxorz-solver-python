@@ -276,8 +276,8 @@ class Game {
       this._toast(opened && closed ? "Bridges changed" : opened ? "Bridge opened" : "Bridge closed");
     }
     this.state = next;
-    // switching cubes is not a move (project FAQ #23); only rolls are counted
-    if (action !== "SWITCH_CONTROL") this._setMoves(this.moves + 1);
+    // switching cubes counts as a move, the same way the solvers count it as a step
+    this._setMoves(this.moves + 1);
     return true;
   }
 
