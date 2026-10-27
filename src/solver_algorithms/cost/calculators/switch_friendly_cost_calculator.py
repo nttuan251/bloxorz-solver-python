@@ -19,7 +19,11 @@ class SwitchFriendlyCostCalculator(CostCalculator):
             current_state, next_state
         )
 
-        if any(self.level.is_fragile_tile(coords) for coords in newly_landed_on_tiles):
+        # A 1x1x1 mini cube never breaks a fragile tile (project FAQ #16), so only the
+        # whole block is charged for landing on one.
+        if not next_state.is_split() and any(
+            self.level.is_fragile_tile(coords) for coords in newly_landed_on_tiles
+        ):
             return self.FRAGILE_COST
 
         if MoveInfoDeterminer.activated_switch(current_state, next_state):
