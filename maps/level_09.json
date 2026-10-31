@@ -1,0 +1,23 @@
+{
+	"map": [
+		"--------------",
+		"--ooob--------",
+		"--oTob--------",
+		"--ooo---------",
+		"--o---oooooo--",
+		"--o---oo--oo--",
+		"-Soooooo--ooo-",
+		"------os----o-",
+		"------oooo--o-",
+		"------ooooooo-",
+		"---------ooo--",
+		"--------------"
+	],
+	"bridges": [
+		{"position": [1, 5], "initial_state": true},
+		{"position": [2, 5], "initial_state": true}
+	],
+	"switches": [
+		{"position": [7, 7], "coords_and_actions": [[[1, 5], "PERMANENT_CLOSE"], [[2, 5], "PERMANENT_CLOSE"]]}
+	]
+}

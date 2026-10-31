@@ -1,0 +1,20 @@
+{
+	"map": [
+		"-----------------",
+		"---------oooo----",
+		"---------oooo----",
+		"-ooo-----o--oooo-",
+		"-oSooooooo---oTo-",
+		"-ooo----ooh--ooo-",
+		"-ooo----ooo--ooo-",
+		"--oob---o--------",
+		"---oooooo--------",
+		"-----------------"
+	],
+	"bridges": [
+		{"position": [7, 4], "initial_state": false}
+	],
+	"switches": [
+		{"position": [5, 10], "coords_and_actions": [[[7, 4], "TOGGLE"]]}
+	]
+}

@@ -1,0 +1,25 @@
+{
+	"map": [
+		"-----------------",
+		"-ooo----oooooooo-",
+		"-oSooooooooo--oo-",
+		"-ooo----oo----oo-",
+		"-------------oho-",
+		"-------------oo--",
+		"-ooo--ffffo--ss--",
+		"-oTofffffff--ooo-",
+		"-ooofffffffffooo-",
+		"------fffffffooo-",
+		"-------boob------",
+		"-----------------"
+	],
+	"bridges": [
+		{"position": [10, 7], "initial_state": true},
+		{"position": [10, 10], "initial_state": true}
+	],
+	"switches": [
+		{"position": [4, 14], "coords_and_actions": [[[10, 7], "PERMANENT_CLOSE"], [[10, 10], "PERMANENT_CLOSE"]]},
+		{"position": [6, 13], "coords_and_actions": [[[10, 7], "PERMANENT_CLOSE"]]},
+		{"position": [6, 14], "coords_and_actions": [[[10, 10], "PERMANENT_CLOSE"]]}
+	]
+}
