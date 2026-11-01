@@ -146,7 +146,3 @@ def main() -> None:
         print("\nStopped.")
     finally:
         server.server_close()
-
-
-if __name__ == "__main__":
-    main()
