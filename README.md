@@ -33,30 +33,30 @@ terminal để dừng.
 Tuỳ chọn:
 
 ```
-python -m web.server --port 9000          # đổi cổng
-python -m web.server --host 0.0.0.0       # cho máy khác trong LAN truy cập
-python -m web.server --no-browser         # không tự mở tab trình duyệt
+python main.py --port 9000          # đổi cổng
+python main.py --host 0.0.0.0       # cho máy khác trong LAN truy cập
+python main.py --no-browser         # không tự mở tab trình duyệt
 ```
 
 ### 2. Điều khiển trong game
 
-| Phím | Chức năng |
-| --- | --- |
-| Mũi tên hoặc W A S D | Lăn khối |
-| Space | Đổi điều khiển giữa 2 khối (sau khi tách) |
-| R | chơi lại màn hiện tại |
-| N | chọn màn |
-| H | bảng hướng dẫn trò chơi |
-| C | đặt lại camera |
-| T | đổi giao diện (Aurora / Dusk) |
-| Kéo chuột / lăn chuột | xoay camera / zoom |
+| Phím                  | Chức năng                                 |
+| --------------------- | ----------------------------------------- |
+| Mũi tên hoặc W A S D  | Lăn khối                                  |
+| Space                 | Đổi điều khiển giữa 2 khối (sau khi tách) |
+| R                     | chơi lại màn hiện tại                     |
+| N                     | chọn màn                                  |
+| H                     | bảng hướng dẫn trò chơi                   |
+| C                     | đặt lại camera                            |
+| T                     | đổi giao diện (Aurora / Dusk)             |
+| Kéo chuột / lăn chuột | xoay camera / zoom                        |
 
 Xong màn sẽ bắn pháo hoa và tự sang màn tiếp theo.
 
 ### 3. Panel giải thuật (bên phải màn chơi)
 
-- Chọn **BFS**, **DFS**, **UCS** hoặc **A\***, chọn thêm *cost*
-  (UNIFORM / RISK_AWARE / SWITCH_FRIENDLY / SPLIT_AWARE) và *heuristic*
+- Chọn **BFS**, **DFS**, **UCS** hoặc **A\***, chọn thêm _cost_
+  (UNIFORM / RISK_AWARE / SWITCH_FRIENDLY / SPLIT_AWARE) và _heuristic_
   (TELEPORT_AWARE / GRID_DISTANCE / RELAXED_BLOCK) khi dùng A\*.
 - Bấm nút để giải: game tự phát lại từng bước, hiển thị **số bước, chi phí
   đường đi, số node mở rộng, thời gian, bộ nhớ đỉnh**.
@@ -131,45 +131,45 @@ hiện trong GUI và trong benchmark. Ví dụ `maps/level_10.json`:
 
 ```json
 {
-	"map": [
-		"---------------",
-		"-------------h-",
-		"------ooo--ooo-",
-		"------ohooooob-",
-		"----ooooo--oo--",
-		"----oTob---oo--",
-		"--ooooo---oooo-",
-		"-ooSo-----oooo-",
-		"-oooo--ooooo---",
-		"------ooo------",
-		"------ooo------",
-		"---------------"
-	],
-	"bridges": [
-		{"position": [3, 13], "initial_state": false},
-		{"position": [5, 7], "initial_state": false}
-	],
-	"switches": [
-		{"position": [1, 13], "coords_and_actions": [[[5, 7], "TOGGLE"]]},
-		{"position": [3, 7], "coords_and_actions": [[[3, 13], "TOGGLE"]]}
-	]
+  "map": [
+    "---------------",
+    "-------------h-",
+    "------ooo--ooo-",
+    "------ohooooob-",
+    "----ooooo--oo--",
+    "----oTob---oo--",
+    "--ooooo---oooo-",
+    "-ooSo-----oooo-",
+    "-oooo--ooooo---",
+    "------ooo------",
+    "------ooo------",
+    "---------------"
+  ],
+  "bridges": [
+    { "position": [3, 13], "initial_state": false },
+    { "position": [5, 7], "initial_state": false }
+  ],
+  "switches": [
+    { "position": [1, 13], "coords_and_actions": [[[5, 7], "TOGGLE"]] },
+    { "position": [3, 7], "coords_and_actions": [[[3, 13], "TOGGLE"]] }
+  ]
 }
 ```
 
 Ký hiệu trong `"map"` (các hàng từ trên xuống là **row 0, 1, 2...**, các cột từ
 trái sang là **col 0, 1, 2...**):
 
-| Ký hiệu | Loại ô | Hành vi trên khối |
-| --- | --- | --- |
-| `o` hoặc `.` | NORMAL | Ô thường, khối đứng/lăn bình thường |
-| `-` | (không có ô) | Khoảng trống: khối rơi nếu lăn vào |
-| `S` | START | Vị trí xuất phát khối (đứng tại đây khi bắt đầu) |
-| `T` | GOAL | Ô đích: khối **đứng** đúng tại đây là thắng |
-| `f` | FRAGILE | Khối chỉ có thể lăn qua; **đứng** trên ô là gãy |
-| `b` | BRIDGE | Cầu; mở hoặc đóng theo công tắc (khai báo trong `bridges`) |
-| `s` | SOFT_SWITCH | Công tắc thường: khối lăn/nằm trên nó là kích hoạt |
-| `h` | HEAVY_SWITCH | Công tắc nặng: khối **đứng** trên nó mới kích hoạt |
-| `p` | SPLIT_SWITCH | Công tắc tách/khớp: khối **đứng** trên nó sẽ tách thành 2 cube |
+| Ký hiệu      | Loại ô       | Hành vi trên khối                                              |
+| ------------ | ------------ | -------------------------------------------------------------- |
+| `o` hoặc `.` | NORMAL       | Ô thường, khối đứng/lăn bình thường                            |
+| `-`          | (không có ô) | Khoảng trống: khối rơi nếu lăn vào                             |
+| `S`          | START        | Vị trí xuất phát khối (đứng tại đây khi bắt đầu)               |
+| `T`          | GOAL         | Ô đích: khối **đứng** đúng tại đây là thắng                    |
+| `f`          | FRAGILE      | Khối chỉ có thể lăn qua; **đứng** trên ô là gãy                |
+| `b`          | BRIDGE       | Cầu; mở hoặc đóng theo công tắc (khai báo trong `bridges`)     |
+| `s`          | SOFT_SWITCH  | Công tắc thường: khối lăn/nằm trên nó là kích hoạt             |
+| `h`          | HEAVY_SWITCH | Công tắc nặng: khối **đứng** trên nó mới kích hoạt             |
+| `p`          | SPLIT_SWITCH | Công tắc tách/khớp: khối **đứng** trên nó sẽ tách thành 2 cube |
 
 Lưu ý khi viết map:
 
