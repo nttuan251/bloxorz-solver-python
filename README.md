@@ -24,7 +24,7 @@ Toàn bộ lệnh dưới đây chạy **từ thư mục gốc của repo** (nơ
 ### 1. Web GUI (khuyến nghị)
 
 ```
-python -m web.server
+python main.py
 ```
 
 Server chạy tại `http://127.0.0.1:8000` và tự mở trong trình duyệt. Bấm `Ctrl+C` trong
